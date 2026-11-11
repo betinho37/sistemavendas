@@ -4,13 +4,26 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ClienteRequest;
 use App\Models\Cliente;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
 class ClienteController extends Controller
 {
+    private function clientesPermitidos()
+    {
+        $user = Auth::user();
+
+        return Cliente::query()
+            ->when(!$user->isAdmin(), function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            });
+    }
+
     public function index()
     {
-        $clientes = Cliente::latest()->paginate(10);
+        $clientes = $this->clientesPermitidos()
+            ->latest()
+            ->paginate(10);
 
         return view('clientes.index', compact('clientes'));
     }
@@ -22,9 +35,10 @@ class ClienteController extends Controller
 
     public function store(ClienteRequest $request)
     {
-        $cliente = Cliente::create(
-            $request->except(['foto', 'documentos'])
-        );
+        $cliente = Cliente::create(array_merge(
+            $request->except(['foto', 'documentos', 'user_id']),
+            ['user_id' => Auth::id()]
+        ));
 
         if ($request->hasFile('foto')) {
             $path = $request->file('foto')->store(
@@ -38,12 +52,12 @@ class ClienteController extends Controller
         if ($request->hasFile('documentos')) {
             foreach ($request->file('documentos') as $file) {
                 $path = $file->store(
-                    'clientes/documentos',
+                    "clientes/{$cliente->id}/documentos",
                     'public'
                 );
 
                 $cliente->documentos()->create([
-                    'nome'    => $file->getClientOriginalName(),
+                    'nome' => $file->getClientOriginalName(),
                     'arquivo' => $path,
                 ]);
             }
@@ -56,26 +70,35 @@ class ClienteController extends Controller
 
     public function show(Cliente $cliente)
     {
-        $cliente->load('documentos');
+        $cliente = $this->clientesPermitidos()
+            ->with('documentos')
+            ->findOrFail($cliente->id);
 
         return view('clientes.show', compact('cliente'));
     }
 
     public function edit(Cliente $cliente)
     {
-        $cliente->load('documentos');
+        $cliente = $this->clientesPermitidos()
+            ->with('documentos')
+            ->findOrFail($cliente->id);
 
         return view('clientes.edit', compact('cliente'));
     }
 
     public function update(ClienteRequest $request, Cliente $cliente)
     {
-        // Atualiza os dados do cliente sem sobrescrever a foto existente.
-        $dados = $request->except(['foto', 'documentos']);
+        $cliente = $this->clientesPermitidos()
+            ->findOrFail($cliente->id);
+
+        $dados = $request->except([
+            'foto',
+            'documentos',
+            'user_id'
+        ]);
 
         $cliente->update($dados);
 
-        // Atualiza a foto somente se uma nova for enviada.
         if ($request->hasFile('foto')) {
             $path = $request->file('foto')->store(
                 'clientes/fotos',
@@ -89,7 +112,6 @@ class ClienteController extends Controller
             $cliente->update(['foto' => $path]);
         }
 
-        // Após salvar, retorna para a listagem de clientes.
         return redirect()
             ->route('clientes.index')
             ->with('success', 'Cliente atualizado com sucesso!');
@@ -97,18 +119,16 @@ class ClienteController extends Controller
 
     public function destroy(Cliente $cliente)
     {
-        if (
-            $cliente->foto &&
-            Storage::disk('public')->exists($cliente->foto)
-        ) {
+        $cliente = $this->clientesPermitidos()
+            ->with('documentos')
+            ->findOrFail($cliente->id);
+
+        if ($cliente->foto) {
             Storage::disk('public')->delete($cliente->foto);
         }
 
         foreach ($cliente->documentos as $doc) {
-            if (
-                $doc->arquivo &&
-                Storage::disk('public')->exists($doc->arquivo)
-            ) {
+            if ($doc->arquivo) {
                 Storage::disk('public')->delete($doc->arquivo);
             }
 
