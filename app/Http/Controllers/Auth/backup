@@ -1,0 +1,153 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\Contrato;
+use App\Models\Cliente;
+use Illuminate\Support\Carbon;
+use App\Models\Parcela;
+
+class ContratoController extends Controller
+{
+    public function index()
+    {
+        $contratos = Contrato::with('cliente')->get(); // Busca os contratos com os clientes relacionados
+        return view('contratos.index', compact('contratos')); // Passa os contratos para a view
+    }
+    
+    public function create()
+    {
+        $clientes = Cliente::all();
+        return view('contratos.create', compact('clientes'));
+    }
+
+    public function store(Request $request)
+{
+    $request->validate([
+        'valor' => 'required|numeric',
+        'qtd_parcelas' => 'required|integer|min:1',
+        'intervalo_dias' => 'required|integer|min:0',
+        'cliente_id' => 'required|exists:clientes,id', // Ensure cliente_id is provided and valid
+        'data_inicio' => 'required|date', // Ensure data_inicio is provided and valid
+    ]);
+
+    // Create the contract
+    $contrato = Contrato::create($request->all());
+
+    // Calculate the value of each installment
+    $valorParcela = $contrato->valor / $contrato->qtd_parcelas;
+    $dataVencimento = Carbon::parse($contrato->data_inicio);
+
+    // Create the installments
+    for ($i = 1; $i <= $contrato->qtd_parcelas; $i++) {
+        Parcela::create([
+            'contrato_id' => $contrato->id,
+            'numero' => $i,
+            'data_vencimento' => $dataVencimento->copy()->addDays($contrato->intervalo_dias * ($i - 1)),
+            'valor' => $valorParcela,
+            'paga' => false,
+        ]);
+    }
+
+    return redirect()->route('contratos.index')->with('success', 'Contrato e parcelas criadas com sucesso!');
+}
+    
+
+    /*public function show(Contrato $contrato)
+    {
+        $contrato->total_receber = $contrato->valor * (1 + ($contrato->juros / 100));
+        $contrato->lucro = $contrato->total_receber - $contrato->valor;
+        $contrato->total_receber = $contrato->valor * (1 + ($contrato->juros / 100));
+
+        return view('contratos.show', compact('contrato'));
+    }*/
+
+
+    public function show($id)
+    {
+        $contrato = Contrato::with('parcelas')->findOrFail($id);
+
+        $contrato->total_receber = $contrato->valor * (1 + ($contrato->juros / 100));
+        $contrato->lucro = $contrato->total_receber - $contrato->valor;
+        $contrato->total_receber = $contrato->valor * (1 + ($contrato->juros / 100));
+
+        return view('contratos.show', compact('contrato'));
+    }
+    
+
+
+    public function edit(Contrato $contrato)
+    {
+        $clientes = Cliente::all();
+
+        $contrato->total_receber = $contrato->valor * (1 + ($contrato->juros / 100));
+        $contrato->lucro = $contrato->total_receber - $contrato->valor;
+        $contrato->total_receber = $contrato->valor * (1 + ($contrato->juros / 100));
+        // Evita divisão por zero
+        $quantidadeParcelas = $contrato->parcelas->count(); // Conta o número de parcelas corretamente
+        $contrato->valor_parcela = ($quantidadeParcelas > 0) ? $contrato->total_receber / $quantidadeParcelas : 0;
+        
+
+        return view('contratos.edit', compact('contrato', 'clientes'));
+
+    }
+
+    /*public function update(Request $request, Contrato $contrato)
+    {
+        $contrato->update($request->all());
+
+        $contrato->data_inicio = $request->data_inicio;
+        $contrato->save();
+        return redirect()->route('contratos.index');
+    }*/
+
+    /*public function update(Request $request, Contrato $contrato)
+{
+    $request->validate([
+        'data_inicio' => 'required|date',
+        'cliente_id' => 'required|exists:clientes,id',
+        'valor' => 'required|numeric|min:0',
+        'qtd_parcelas' => 'required|integer|min:1',
+        'intervalo_dias' => 'required|integer|min:1',
+        'juros' => 'required|numeric|min:0',
+    ]);
+
+    // Atualizar o contrato
+    $contrato->update($request->only([
+        'data_inicio', 'cliente_id', 'valor', 'intervalo_dias', 'juros', 'observacao'
+    ]));
+
+    return redirect()->route('contratos.index')->with('success', 'Contrato atualizado com sucesso!');
+}
+*/
+
+public function update(Request $request, Contrato $contrato)
+{
+    $request->validate([
+        'data_inicio' => 'required|date',
+        'cliente_id' => 'required|exists:clientes,id',
+        'valor' => 'required|numeric|min:0',
+        'qtd_parcelas' => 'required|integer|min:1',
+        'intervalo_dias' => 'required|integer|min:1',
+        'juros' => 'required|numeric|min:0',
+    ]);
+
+    // Update the contract
+    $contrato->update($request->only([
+        'data_inicio', 'cliente_id', 'valor', 'qtd_parcelas', 'intervalo_dias', 'juros', 'observacao'
+    ]));
+
+    // Handle checkboxes
+    $contrato->vencimento_sabado = $request->has('vencimento_sabado');
+    $contrato->vencimento_domingo = $request->has('vencimento_domingo');
+    $contrato->save();
+
+    return redirect()->route('contratos.index')->with('success', 'Contrato atualizado com sucesso!');
+}
+    public function destroy(Contrato $contrato)
+    {
+        $contrato->delete();
+        return redirect()->route('contratos.index');
+    }
+}

@@ -1,0 +1,21 @@
+/* Estilo do card */
+.card-dark {
+    background: #1e1e1e;
+    border: 1px solid #333;
+}
+
+/* Botão de salvar */
+.btn-custom-primary {
+    background: #00AEEF;
+    border: none;
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 16px;
+}
+
+/* Inputs e selects escuros */
+.form-dark {
+    background: #121212;
+    color: #fff;
+    border: 0;
+}

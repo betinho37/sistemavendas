@@ -1,0 +1,147 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+/* Estilo Geral */
+body {
+    font-family: Arial, sans-serif;
+    background: #000000;
+    color: #FFFFFF;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+}
+
+/* Container Principal */
+.login-container {
+    text-align: center;
+    width: 90%;
+    max-width: 400px;
+}
+
+/* Logo */
+.logo h1 {
+    font-size: 32px;
+    font-weight: bold;
+    color: #00AEEF;
+}
+
+.logo span {
+    color: #FFFFFF;
+}
+
+.logo p {
+    font-size: 14px;
+    color: #CCCCCC;
+    margin-bottom: 20px;
+}
+
+/* Caixa de Login */
+.login-box {
+    background: #111111;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0px 0px 15px rgba(0, 174, 239, 0.4);
+    color: #FFFFFF;
+}
+
+/* Tabs */
+.tabs {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.tabs a {
+    text-decoration: none;
+    color: #CCCCCC;
+    font-size: 16px;
+    padding: 5px 10px;
+}
+
+.tabs .active {
+    color: #00AEEF;
+    border-bottom: 2px solid #00AEEF;
+}
+
+/* Inputs */
+.input-group {
+    margin-bottom: 15px;
+    text-align: left;
+}
+
+.input-group label {
+    font-size: 14px;
+    color: #CCCCCC;
+    display: block;
+    margin-bottom: 5px;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #333;
+    background: #222;
+    color: #FFFFFF;
+    border-radius: 5px;
+}
+
+/* Campo de Senha */
+.password-field {
+    display: flex;
+    align-items: center;
+}
+
+.password-field input {
+    flex: 1;
+}
+
+.toggle-password {
+    cursor: pointer;
+    margin-left: 10px;
+    color: #00AEEF;
+}
+
+/* Botão Login */
+.login-button {
+    width: 100%;
+    padding: 10px;
+    background: #00AEEF;
+    border: none;
+    color: white;
+    font-size: 16px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.login-button:hover {
+    background: #0088CC;
+}
+
+/* Links Extras */
+.extra-links {
+    margin-top: 10px;
+}
+
+.extra-links a {
+    text-decoration: none;
+    color: #00AEEF;
+    font-size: 14px;
+    margin-right: 10px;
+}
+
+.extra-links a:hover {
+    text-decoration: underline;
+}
+
+/* Suporte */
+.support {
+    margin-top: 15px;
+}
+
+.support a {
+    text-decoration: none;
+    color: #25D366;
+    font-size: 14px;
+}

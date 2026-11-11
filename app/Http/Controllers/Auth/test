@@ -1,0 +1,9 @@
+curl -X POST "https://graph.facebook.com/v17.0/1550760105632367/messages" \
+-H "Authorization: Bearer 36a6440cfcd3df2aaaac3cf6ca428278"
+-H "Content-Type: application/json" \
+-d '{
+    "messaging_product": "whatsapp",
+    "to": "5561992761053",
+    "type": "text",
+    "text": { "body": "Olá! Este é um teste da API do WhatsApp." }
+}'
