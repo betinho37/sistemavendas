@@ -10,30 +10,65 @@
 
     <meta name="theme-color" content="#101010">
 
-    {{-- Bootstrap --}}
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-        rel="stylesheet"
-    >
-
-    {{-- Font Awesome --}}
-    <link
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css"
-        rel="stylesheet"
-    >
-
-    {{-- Tema global m1r4ge7 --}}
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{{ asset('css/custom.css') }}?v=2">
+
+    <style>
+        .logout-form {
+            display: inline-flex;
+            margin-left: 12px;
+        }
+
+        .logout-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 13px;
+            border: 1px solid rgba(255, 90, 90, .3);
+            border-radius: 9px;
+            background: rgba(255, 70, 70, .08);
+            color: #ff7777;
+            font-size: 13px;
+            font-weight: 600;
+            transition: .2s ease;
+        }
+
+        .logout-button:hover {
+            background: rgba(255, 70, 70, .18);
+            border-color: rgba(255, 90, 90, .6);
+            color: #ff9999;
+        }
+
+        @media (max-width: 600px) {
+            .logout-button {
+                padding: 9px 11px;
+            }
+
+            .logout-button .logout-text {
+                display: none;
+            }
+
+            .logout-form {
+                margin-left: 6px;
+            }
+
+            .user-name {
+                max-width: 85px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+        }
+    </style>
 
     @stack('styles')
 </head>
 
 <body class="m1r7-body">
 
-    {{-- Fundo de fechamento do menu no celular --}}
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    {{-- Cabeçalho global --}}
     <header class="m1r7-topbar">
         <div class="topbar-left">
             <button
@@ -75,14 +110,26 @@
                         {{ Auth::user()->name }}
                     </span>
                 </div>
+
+                <form
+                    method="POST"
+                    action="{{ route('logout') }}"
+                    class="logout-form"
+                    onsubmit="return confirm('Deseja realmente sair do sistema?');"
+                >
+                    @csrf
+
+                    <button type="submit" class="logout-button" title="Sair do sistema">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span class="logout-text">Sair</span>
+                    </button>
+                </form>
             @endauth
         </div>
     </header>
 
-    {{-- Menu lateral --}}
     @include('layouts.sidebar')
 
-    {{-- Conteúdo de cada página --}}
     <main class="m1r7-main">
         <div class="page-content">
 
@@ -105,7 +152,6 @@
         </div>
     </main>
 
-    {{-- Scripts --}}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>

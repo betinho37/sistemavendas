@@ -10,6 +10,8 @@ use App\Http\Controllers\ConfiguracoesController;
 use App\Http\Controllers\ClienteDocumentoController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\CalculadoraController;
+        use App\Http\Controllers\PagamentoController;
+
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -104,6 +106,10 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/configuracoes/salvar', [ConfiguracoesController::class, 'salvar'])
         ->name('configuracoes.salvar');
+
+Route::post('/parcelas/{parcela}/pagamentos', [PagamentoController::class, 'store'])
+    ->name('parcelas.pagamentos.store');
+
 });
 
 require __DIR__ . '/auth.php';

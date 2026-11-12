@@ -66,12 +66,15 @@ class ContratoController extends Controller
             ->with('success', 'Contrato criado com sucesso!');
     }
 
-    public function show($id)
-    {
-        $contrato = Contrato::with(['cliente', 'parcelas'])->findOrFail($id);
+   public function show($id)
+{
+    $contrato = Contrato::with([
+        'cliente',
+        'parcelas.pagamentos.user'
+    ])->findOrFail($id);
 
-        return view('contratos.show', compact('contrato'));
-    }
+    return view('contratos.show', compact('contrato'));
+}
 
     public function edit(Contrato $contrato)
     {
