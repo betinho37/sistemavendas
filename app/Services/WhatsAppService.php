@@ -12,25 +12,56 @@ class WhatsAppService
 
     public function __construct()
     {
-        $this->apiUrl = env('WHATSAPP_API_URL');
+        $this->apiUrl = rtrim((string) env('WHATSAPP_API_URL'), '/');
         $this->token = env('WHATSAPP_TOKEN');
         $this->phoneId = env('WHATSAPP_PHONE_ID');
     }
 
-    public function enviarMensagem($telefone, $mensagem)
+    public function estaConfigurado(): bool
     {
+        return !empty($this->apiUrl)
+            && !empty($this->token)
+            && !empty($this->phoneId);
+    }
+
+    public function enviarMensagem($telefone, $mensagem): array
+    {
+        if (!$this->estaConfigurado()) {
+            throw new \RuntimeException(
+                'Integração do WhatsApp não configurada.'
+            );
+        }
+
+        $telefone = preg_replace('/\D/', '', (string) $telefone);
+
+        if (strlen($telefone) < 10) {
+            throw new \RuntimeException('Telefone inválido.');
+        }
+
+        if (!str_starts_with($telefone, '55')) {
+            $telefone = '55' . $telefone;
+        }
+
         $endpoint = "{$this->apiUrl}/{$this->phoneId}/messages";
 
-        $response = Http::withHeaders([
-            'Authorization' => "Bearer {$this->token}",
-            'Content-Type' => 'application/json',
-        ])->post($endpoint, [
-            'messaging_product' => 'whatsapp',
-            'to' => $telefone, // Número do cliente com DDI, ex: 5511999999999
-            'type' => 'text',
-            'text' => ['body' => $mensagem],
-        ]);
+        $response = Http::withToken($this->token)
+            ->acceptJson()
+            ->timeout(20)
+            ->post($endpoint, [
+                'messaging_product' => 'whatsapp',
+                'to' => $telefone,
+                'type' => 'text',
+                'text' => [
+                    'body' => $mensagem,
+                ],
+            ]);
 
-        return $response->json();
+        if (!$response->successful()) {
+            throw new \RuntimeException(
+                'Erro na API do WhatsApp: ' . $response->body()
+            );
+        }
+
+        return $response->json() ?? [];
     }
 }
