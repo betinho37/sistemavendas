@@ -60,19 +60,19 @@ class PagamentoController extends Controller
         $arquivo = $request->file('comprovante');
         unset($dados['comprovante']);
 
-        $pagamento = DB::transaction(function () use ($parcela, $dados, $arquivo) {
-            $parcela = Parcela::whereKey($parcela->id)
+        DB::transaction(function () use ($parcela, $dados, $arquivo) {
+            $parcelaAtual = Parcela::whereKey($parcela->id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            $this->verificarAcesso($parcela);
+            $this->verificarAcesso($parcelaAtual);
 
-            $totalPago = (float) $parcela->pagamentos()->sum('valor');
-            $valorParcela = (float) $parcela->valor;
+            $totalPago = (float) $parcelaAtual->pagamentos()->sum('valor');
+            $valorParcela = (float) $parcelaAtual->valor;
             $saldo = round($valorParcela - $totalPago, 2);
             $valorPagamento = round((float) $dados['valor'], 2);
 
-            if ($parcela->status && $totalPago == 0) {
+            if ($parcelaAtual->status && $totalPago == 0) {
                 throw ValidationException::withMessages([
                     'valor' => 'Esta parcela está marcada como paga, mas não possui histórico de recebimentos.',
                 ]);
@@ -91,23 +91,30 @@ class PagamentoController extends Controller
                 ]);
             }
 
-            $pagamento = $parcela->pagamentos()->create([
+            $pagamento = $parcelaAtual->pagamentos()->create([
                 'user_id' => Auth::id(),
                 'valor' => $valorPagamento,
                 'data_pagamento' => $dados['data_pagamento'],
             ]);
 
             if ($arquivo) {
-                $pagamento->comprovante = $arquivo->store('comprovantes', 'local');
+                $caminho = $arquivo->store('comprovantes', 'local');
+
+                if (!$caminho) {
+                    throw new \RuntimeException('Não foi possível salvar o comprovante.');
+                }
+
+                $pagamento->comprovante = $caminho;
                 $pagamento->save();
             }
 
-            $this->atualizarStatus($parcela);
-
-            return $pagamento;
+            $this->atualizarStatus($parcelaAtual);
         });
 
-        return redirect()->route('pagamentos.recibo', $pagamento->id);
+        return back()->with(
+            'success',
+            'Pagamento registrado e comprovante anexado com sucesso!'
+        );
     }
 
     public function update(Request $request, $pagamentoId)
@@ -153,6 +160,10 @@ class PagamentoController extends Controller
 
             if ($arquivo) {
                 $novoComprovante = $arquivo->store('comprovantes', 'local');
+
+                if (!$novoComprovante) {
+                    throw new \RuntimeException('Não foi possível salvar o comprovante.');
+                }
 
                 if ($pagamento->comprovante) {
                     Storage::disk('local')->delete($pagamento->comprovante);
