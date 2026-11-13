@@ -26,7 +26,7 @@
             </div>
         @endif
 
-        <form action="{{ route('contratos.store') }}" method="POST" id="formContrato">
+        <form action="{{ route('contratos.store') }}" method="POST" enctype="multipart/form-data" class="mb-2"> id="formContrato">
             @csrf
 
             <div class="mb-3">

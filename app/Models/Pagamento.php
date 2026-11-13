@@ -13,6 +13,7 @@ class Pagamento extends Model
         'valor',
         'data_pagamento',
         'observacao',
+        'comprovante',
     ];
 
     protected $casts = [
@@ -29,18 +30,4 @@ class Pagamento extends Model
     {
         return $this->belongsTo(User::class);
     }
-    public function pagamentos()
-{
-    return $this->hasMany(Pagamento::class);
-}
-
-public function getTotalPagoAttribute(): float
-{
-    return (float) $this->pagamentos()->sum('valor');
-}
-
-public function getSaldoRestanteAttribute(): float
-{
-    return max(0, (float) $this->valor - $this->total_pago);
-}
 }

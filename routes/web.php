@@ -19,15 +19,17 @@ Route::get('/', function () {
 });
 
 Route::middleware('auth')->group(function () {
-// FLUXO DE CAIXA
-Route::get('/fluxo-caixa', [FluxoCaixaController::class, 'index'])
-    ->name('fluxo-caixa.index');
 
-Route::post('/fluxo-caixa', [FluxoCaixaController::class, 'store'])
-    ->name('fluxo-caixa.store');
+    // FLUXO DE CAIXA
+    Route::get('/fluxo-caixa', [FluxoCaixaController::class, 'index'])
+        ->name('fluxo-caixa.index');
 
-Route::delete('/fluxo-caixa/{id}', [FluxoCaixaController::class, 'destroy'])
-    ->name('fluxo-caixa.destroy');
+    Route::post('/fluxo-caixa', [FluxoCaixaController::class, 'store'])
+        ->name('fluxo-caixa.store');
+
+    Route::delete('/fluxo-caixa/{id}', [FluxoCaixaController::class, 'destroy'])
+        ->name('fluxo-caixa.destroy');
+
     // DASHBOARD
     Route::get('/dashboard', [DashboardController::class, 'index'])
         ->name('dashboard');
@@ -51,7 +53,7 @@ Route::delete('/fluxo-caixa/{id}', [FluxoCaixaController::class, 'destroy'])
     // CLIENTES
     Route::resource('clientes', ClienteController::class);
 
-    // DOCUMENTOS
+    // DOCUMENTOS DOS CLIENTES
     Route::post('/clientes/{clienteId}/documentos', [ClienteDocumentoController::class, 'store'])
         ->name('clientes.documentos.store');
 
@@ -107,6 +109,17 @@ Route::delete('/fluxo-caixa/{id}', [FluxoCaixaController::class, 'destroy'])
 
     Route::delete('/pagamentos/{pagamento}', [PagamentoController::class, 'destroy'])
         ->name('pagamentos.destroy');
+
+    // RECIBO PDF
+    Route::get('/pagamentos/{pagamento}/recibo', [PagamentoController::class, 'recibo'])
+        ->name('pagamentos.recibo');
+
+    // COMPROVANTES
+    Route::get('/pagamentos/{pagamento}/comprovante', [PagamentoController::class, 'comprovante'])
+        ->name('pagamentos.comprovante');
+
+    Route::get('/pagamentos/{pagamento}/comprovante/baixar', [PagamentoController::class, 'baixarComprovante'])
+        ->name('pagamentos.comprovante.baixar');
 
     // PERFIL
     Route::get('/profile', [ProfileController::class, 'edit'])

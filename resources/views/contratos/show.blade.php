@@ -131,6 +131,19 @@
         color-scheme: dark;
     }
 
+    .contrato-detalhes input[type="file"] {
+        font-size: 12px;
+    }
+
+    .contrato-detalhes input[type="file"]::file-selector-button {
+        background: #303d4d;
+        color: #fff;
+        border: 0;
+        padding: 7px 10px;
+        margin: -5px 10px -5px -5px;
+        border-radius: 4px;
+    }
+
     .contrato-detalhes .historico {
         background: #151c25;
         border: 1px solid #303a47;
@@ -188,6 +201,17 @@
         display: flex;
         flex-wrap: wrap;
         gap: 8px;
+    }
+
+    .contrato-detalhes .botoes-comprovante {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 8px;
+    }
+
+    .contrato-detalhes .botoes-comprovante .btn {
+        font-size: 11px;
     }
 
     /* VISUALIZAÇÃO MOBILE */
@@ -263,10 +287,6 @@
         background: #202936;
     }
 
-    .parcela-card .historico {
-        margin-top: 12px;
-    }
-
     .contrato-detalhes .painel-corpo {
         min-width: 0;
     }
@@ -317,6 +337,19 @@
 
         .contrato-detalhes .painel-header {
             padding: 11px 12px;
+        }
+
+        .contrato-detalhes .botoes-comprovante {
+            display: grid;
+            grid-template-columns: 1fr;
+        }
+
+        .contrato-detalhes .botoes-comprovante .btn {
+            width: 100%;
+            min-height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
     }
 
@@ -568,7 +601,9 @@
                                     <td>
                                         @if($saldo > 0)
                                             <form action="{{ route('parcelas.pagamentos.store', $parcela->id) }}"
-                                                  method="POST" class="mb-2">
+                                                  method="POST"
+                                                  enctype="multipart/form-data"
+                                                  class="mb-2">
                                                 @csrf
 
                                                 <input type="number"
@@ -586,7 +621,13 @@
                                                        value="{{ now()->format('Y-m-d') }}"
                                                        required>
 
-                                                <button class="btn btn-success btn-sm w-100">
+                                                <label class="small mb-1">Comprovante (opcional)</label>
+                                                <input type="file"
+                                                       name="comprovante"
+                                                       class="form-control form-control-sm mb-2"
+                                                       accept=".pdf,.jpg,.jpeg,.png">
+
+                                                <button type="submit" class="btn btn-success btn-sm w-100">
                                                     Registrar recebimento
                                                 </button>
                                             </form>
@@ -635,10 +676,12 @@
                                     </td>
                                 </tr>
 
+                                {{-- HISTÓRICO DESKTOP --}}
                                 @if($parcela->pagamentos->isNotEmpty())
                                     <tr>
                                         <td colspan="7">
                                             <div class="historico">
+
                                                 <div class="fw-semibold text-white small mb-1">
                                                     Histórico de recebimentos
                                                 </div>
@@ -665,12 +708,41 @@
                                                             </div>
                                                         </div>
 
+                                                        {{-- RECIBO E COMPROVANTE --}}
+                                                        <div class="botoes-comprovante">
+
+                                                            <a href="{{ route('pagamentos.recibo', $pagamento->id) }}"
+                                                               target="_blank"
+                                                               class="btn btn-outline-light btn-sm">
+                                                                <i class="fas fa-file-pdf me-1"></i>
+                                                                Emitir recibo
+                                                            </a>
+
+                                                            @if($pagamento->comprovante)
+                                                                <a href="{{ route('pagamentos.comprovante', $pagamento->id) }}"
+                                                                   target="_blank"
+                                                                   class="btn btn-outline-info btn-sm">
+                                                                    <i class="fas fa-eye me-1"></i>
+                                                                    Ver comprovante
+                                                                </a>
+
+                                                                <a href="{{ route('pagamentos.comprovante.baixar', $pagamento->id) }}"
+                                                                   class="btn btn-outline-light btn-sm">
+                                                                    <i class="fas fa-download me-1"></i>
+                                                                    Baixar comprovante
+                                                                </a>
+                                                            @endif
+
+                                                        </div>
+
+                                                        {{-- EDITAR RECEBIMENTO --}}
                                                         <details>
                                                             <summary>Editar recebimento</summary>
 
                                                             <div class="editor">
                                                                 <form action="{{ route('pagamentos.update', $pagamento->id) }}"
-                                                                      method="POST">
+                                                                      method="POST"
+                                                                      enctype="multipart/form-data">
                                                                     @csrf
                                                                     @method('PUT')
 
@@ -689,6 +761,19 @@
                                                                            class="form-control form-control-sm mb-2"
                                                                            value="{{ $pagamento->data_pagamento->format('Y-m-d') }}"
                                                                            required>
+
+                                                                    <label class="small mb-1">Substituir comprovante (opcional)</label>
+                                                                    <input type="file"
+                                                                           name="comprovante"
+                                                                           class="form-control form-control-sm mb-2"
+                                                                           accept=".pdf,.jpg,.jpeg,.png">
+
+                                                                    @if($pagamento->comprovante)
+                                                                        <small class="text-info d-block mb-2">
+                                                                            Já existe um comprovante anexado.
+                                                                            Envie outro arquivo somente se desejar substituí-lo.
+                                                                        </small>
+                                                                    @endif
 
                                                                     <button class="btn btn-warning btn-sm w-100">
                                                                         Salvar recebimento
@@ -711,6 +796,7 @@
 
                                                     </div>
                                                 @endforeach
+
                                             </div>
                                         </td>
                                     </tr>
@@ -781,6 +867,7 @@
 
                         <div class="parcela-card-acoes">
 
+                            {{-- REGISTRAR RECEBIMENTO MOBILE --}}
                             @if($saldo > 0)
                                 <details>
                                     <summary>
@@ -791,7 +878,8 @@
 
                                     <div class="editor">
                                         <form action="{{ route('parcelas.pagamentos.store', $parcela->id) }}"
-                                              method="POST">
+                                              method="POST"
+                                              enctype="multipart/form-data">
                                             @csrf
 
                                             <label class="small mb-1">Valor recebido</label>
@@ -811,6 +899,12 @@
                                                    value="{{ now()->format('Y-m-d') }}"
                                                    required>
 
+                                            <label class="small mb-1">Comprovante (opcional)</label>
+                                            <input type="file"
+                                                   name="comprovante"
+                                                   class="form-control mb-3"
+                                                   accept=".pdf,.jpg,.jpeg,.png">
+
                                             <button type="submit" class="btn btn-success">
                                                 Confirmar recebimento
                                             </button>
@@ -823,6 +917,7 @@
                                 </div>
                             @endif
 
+                            {{-- EDITAR PARCELA MOBILE --}}
                             <details>
                                 <summary>
                                     <span class="btn btn-warning">
@@ -892,13 +987,49 @@
                                                 </span>
                                             </div>
 
+                                            <div class="small texto-secundario mb-2">
+                                                Pago por:
+                                                <strong class="text-white">
+                                                    {{ $contrato->cliente->nome ?? 'Cliente não identificado' }}
+                                                </strong>
+                                            </div>
+
+                                            {{-- RECIBO E COMPROVANTE MOBILE --}}
+                                            <div class="botoes-comprovante">
+
+                                                <a href="{{ route('pagamentos.recibo', $pagamento->id) }}"
+                                                   target="_blank"
+                                                   class="btn btn-outline-light btn-sm">
+                                                    <i class="fas fa-file-pdf me-1"></i>
+                                                    Emitir recibo
+                                                </a>
+
+                                                @if($pagamento->comprovante)
+                                                    <a href="{{ route('pagamentos.comprovante', $pagamento->id) }}"
+                                                       target="_blank"
+                                                       class="btn btn-outline-info btn-sm">
+                                                        <i class="fas fa-eye me-1"></i>
+                                                        Ver comprovante
+                                                    </a>
+
+                                                    <a href="{{ route('pagamentos.comprovante.baixar', $pagamento->id) }}"
+                                                       class="btn btn-outline-light btn-sm">
+                                                        <i class="fas fa-download me-1"></i>
+                                                        Baixar comprovante
+                                                    </a>
+                                                @endif
+
+                                            </div>
+
+                                            {{-- EDITAR RECEBIMENTO MOBILE --}}
                                             <details>
                                                 <summary>Editar recebimento</summary>
 
                                                 <div class="editor">
 
                                                     <form action="{{ route('pagamentos.update', $pagamento->id) }}"
-                                                          method="POST">
+                                                          method="POST"
+                                                          enctype="multipart/form-data">
                                                         @csrf
                                                         @method('PUT')
 
@@ -917,6 +1048,19 @@
                                                                class="form-control mb-2"
                                                                value="{{ $pagamento->data_pagamento->format('Y-m-d') }}"
                                                                required>
+
+                                                        <label class="small mb-1">Substituir comprovante (opcional)</label>
+                                                        <input type="file"
+                                                               name="comprovante"
+                                                               class="form-control mb-2"
+                                                               accept=".pdf,.jpg,.jpeg,.png">
+
+                                                        @if($pagamento->comprovante)
+                                                            <small class="text-info d-block mb-2">
+                                                                Já existe um comprovante anexado.
+                                                                Envie outro arquivo somente se desejar substituí-lo.
+                                                            </small>
+                                                        @endif
 
                                                         <button type="submit" class="btn btn-warning">
                                                             Salvar recebimento

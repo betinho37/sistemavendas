@@ -50,7 +50,17 @@ class Parcela extends Model
     }
 
     public function pagamentos(): HasMany
-{
-    return $this->hasMany(Pagamento::class, 'parcela_id');
-}
+    {
+        return $this->hasMany(Pagamento::class, 'parcela_id');
+    }
+
+    public function getTotalPagoAttribute(): float
+    {
+        return (float) $this->pagamentos()->sum('valor');
+    }
+
+    public function getSaldoRestanteAttribute(): float
+    {
+        return max(0, (float) $this->valor - $this->total_pago);
+    }
 }

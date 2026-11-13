@@ -10,7 +10,7 @@
             <button type="button" class="btn btn-danger" onclick="window.history.back()">✖</button>
         </div>
 
-        <form action="{{ route('contratos.update', $contrato->id) }}" method="POST" id="formContrato">
+        <form action="{{ route('contratos.update', $contrato->id) }}" method="POST" enctype="multipart/form-data" class="mb-2"> id="formContrato">
             @csrf
             @method('PUT')
 
