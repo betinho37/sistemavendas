@@ -4,12 +4,14 @@
 @section('title', 'Contratos')
 
 @section('content')
+
 <style>
     .contratos-page {
         color: #e8edf5;
+        width: 100%;
     }
 
-    .contratos-page .contratos-header {
+    .contratos-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
@@ -18,32 +20,65 @@
         margin-bottom: 20px;
     }
 
-    .contratos-page .contratos-header h2 {
+    .contratos-header h2 {
         margin: 0;
         font-size: 1.5rem;
         font-weight: 700;
+    }
+
+    /* TABELA DESKTOP */
+    .contratos-desktop {
+        width: 100%;
+        overflow-x: auto;
+        border-radius: 12px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .contratos-desktop table {
+        min-width: 1100px;
+        margin-bottom: 0;
+    }
+
+    .contratos-desktop th,
+    .contratos-desktop td {
+        white-space: nowrap;
+        vertical-align: middle;
+    }
+
+    .contratos-desktop .acoes {
+        display: flex;
+        gap: 6px;
+    }
+
+    /* MOBILE */
+    .contratos-mobile {
+        display: none;
     }
 
     .contrato-card {
         background: #151b26;
         border: 1px solid #293344;
         border-radius: 14px;
-        padding: 16px;
-        margin-bottom: 14px;
+        padding: 15px;
+        margin-bottom: 13px;
+        width: 100%;
+        box-shadow: 0 3px 10px rgba(0,0,0,.12);
     }
 
     .contrato-card .cliente {
-        font-size: 1.05rem;
+        font-size: 1rem;
         font-weight: 700;
         color: #fff;
         margin-bottom: 14px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid #293344;
         overflow-wrap: anywhere;
     }
 
     .contrato-info {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 13px;
+        gap: 14px 10px;
     }
 
     .contrato-info .item {
@@ -52,14 +87,16 @@
 
     .contrato-info .label {
         display: block;
-        font-size: .75rem;
+        font-size: .72rem;
         color: #8d9aab;
         margin-bottom: 4px;
     }
 
     .contrato-info .valor {
-        font-size: .92rem;
+        display: block;
+        font-size: .9rem;
         font-weight: 600;
+        color: #e8edf5;
         overflow-wrap: anywhere;
     }
 
@@ -72,40 +109,37 @@
     }
 
     .contrato-acoes {
-        display: flex;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 8px;
         margin-top: 16px;
-        padding-top: 14px;
+        padding-top: 13px;
         border-top: 1px solid #293344;
     }
 
     .contrato-acoes a,
     .contrato-acoes button {
-        flex: 1;
+        width: 100%;
         min-height: 42px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: .85rem;
-    }
-
-    .contratos-desktop {
-        overflow-x: auto;
-        border-radius: 12px;
-    }
-
-    .contratos-desktop table {
-        min-width: 1100px;
-        margin-bottom: 0;
-    }
-
-    .contratos-desktop th,
-    .contratos-desktop td {
+        font-size: .82rem;
+        padding: 6px 4px;
         white-space: nowrap;
     }
 
-    .contratos-mobile {
-        display: none;
+    .contrato-acoes form {
+        min-width: 0;
+    }
+
+    .contratos-vazio {
+        background: #151b26;
+        border: 1px solid #293344;
+        border-radius: 12px;
+        padding: 25px 15px;
+        text-align: center;
+        color: #ffc857;
     }
 
     .contratos-rodape {
@@ -115,23 +149,29 @@
         color: #8995a5;
     }
 
+    /* TABLETS E CELULARES */
     @media (max-width: 767px) {
         .contratos-page {
-            padding-left: 2px;
-            padding-right: 2px;
+            padding-left: 0;
+            padding-right: 0;
         }
 
-        .contratos-page .contratos-header {
+        .contratos-header {
             align-items: stretch;
+            flex-direction: column;
+            margin-bottom: 15px;
         }
 
-        .contratos-page .contratos-header h2 {
-            font-size: 1.3rem;
+        .contratos-header h2 {
+            font-size: 1.25rem;
         }
 
-        .contratos-page .contratos-header .btn {
+        .contratos-header .btn {
             width: 100%;
             min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .contratos-desktop {
@@ -141,14 +181,34 @@
         .contratos-mobile {
             display: block;
         }
+    }
 
+    /* CELULARES PEQUENOS */
+    @media (max-width: 380px) {
         .contrato-card {
-            padding: 14px;
+            padding: 12px;
+        }
+
+        .contrato-info {
+            gap: 12px 7px;
+        }
+
+        .contrato-info .valor {
+            font-size: .83rem;
+        }
+
+        .contrato-acoes {
+            gap: 5px;
+        }
+
+        .contrato-acoes a,
+        .contrato-acoes button {
+            font-size: .75rem;
         }
     }
 </style>
 
-<div class="container contratos-page">
+<div class="container-fluid contratos-page">
 
     <div class="contratos-header">
         <h2>Lista de Contratos</h2>
@@ -158,7 +218,7 @@
         </a>
     </div>
 
-    {{-- VERSÃO DESKTOP --}}
+    {{-- DESKTOP --}}
     <div class="contratos-desktop">
         <table class="table table-dark table-bordered text-white align-middle">
             <thead class="text-center">
@@ -210,7 +270,7 @@
                         </td>
 
                         <td>
-                            <div class="d-flex gap-2">
+                            <div class="acoes">
                                 <a href="{{ route('contratos.show', $contrato->id) }}"
                                    class="btn btn-sm btn-info">Detalhes</a>
 
@@ -222,14 +282,16 @@
                                       onsubmit="return confirm('Deseja excluir este contrato?')">
                                     @csrf
                                     @method('DELETE')
-                                    <button class="btn btn-sm btn-danger">Excluir</button>
+                                    <button type="submit" class="btn btn-sm btn-danger">
+                                        Excluir
+                                    </button>
                                 </form>
                             </div>
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="10" class="text-center text-warning">
+                        <td colspan="10" class="text-center text-warning py-4">
                             Nenhum contrato cadastrado.
                         </td>
                     </tr>
@@ -238,8 +300,9 @@
         </table>
     </div>
 
-    {{-- VERSÃO MOBILE --}}
+    {{-- MOBILE --}}
     <div class="contratos-mobile">
+
         @forelse($contratos as $contrato)
             <div class="contrato-card">
 
@@ -317,12 +380,11 @@
 
                     <form action="{{ route('contratos.destroy', $contrato->id) }}"
                           method="POST"
-                          style="flex: 1;"
                           onsubmit="return confirm('Deseja excluir este contrato?')">
                         @csrf
                         @method('DELETE')
 
-                        <button type="submit" class="btn btn-danger btn-sm w-100">
+                        <button type="submit" class="btn btn-danger btn-sm">
                             Excluir
                         </button>
                     </form>
@@ -330,10 +392,11 @@
                 </div>
             </div>
         @empty
-            <div class="contrato-card text-center text-warning">
+            <div class="contratos-vazio">
                 Nenhum contrato cadastrado.
             </div>
         @endforelse
+
     </div>
 
     <small class="contratos-rodape">

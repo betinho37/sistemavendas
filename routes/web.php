@@ -1,5 +1,5 @@
-<?php
 
+<?php
 
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ClienteController;
@@ -10,7 +10,7 @@ use App\Http\Controllers\ConfiguracoesController;
 use App\Http\Controllers\ClienteDocumentoController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\CalculadoraController;
-        use App\Http\Controllers\PagamentoController;
+use App\Http\Controllers\PagamentoController;
 
 use Illuminate\Support\Facades\Route;
 
@@ -43,7 +43,7 @@ Route::middleware('auth')->group(function () {
     // CLIENTES
     Route::resource('clientes', ClienteController::class);
 
-    // DOCUMENTOS DO CLIENTE
+    // DOCUMENTOS
     Route::post('/clientes/{clienteId}/documentos', [ClienteDocumentoController::class, 'store'])
         ->name('clientes.documentos.store');
 
@@ -90,6 +90,16 @@ Route::middleware('auth')->group(function () {
     Route::put('/parcelas/{id}/status', [ParcelaController::class, 'updateStatus'])
         ->name('parcelas.updateStatus.put');
 
+    // PAGAMENTOS
+    Route::post('/parcelas/{parcela}/pagamentos', [PagamentoController::class, 'store'])
+        ->name('parcelas.pagamentos.store');
+
+    Route::put('/pagamentos/{pagamento}', [PagamentoController::class, 'update'])
+        ->name('pagamentos.update');
+
+    Route::delete('/pagamentos/{pagamento}', [PagamentoController::class, 'destroy'])
+        ->name('pagamentos.destroy');
+
     // PERFIL
     Route::get('/profile', [ProfileController::class, 'edit'])
         ->name('profile.edit');
@@ -106,10 +116,6 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/configuracoes/salvar', [ConfiguracoesController::class, 'salvar'])
         ->name('configuracoes.salvar');
-
-Route::post('/parcelas/{parcela}/pagamentos', [PagamentoController::class, 'store'])
-    ->name('parcelas.pagamentos.store');
-
 });
 
 require __DIR__ . '/auth.php';

@@ -11,11 +11,6 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardController extends Controller
 {
-    /**
-     * Consulta base de contratos permitidos.
-     * Administrador visualiza todos.
-     * Usuário comum visualiza somente seus contratos.
-     */
     private function contratosPermitidos()
     {
         $user = Auth::user();
@@ -31,9 +26,6 @@ class DashboardController extends Controller
         return $query;
     }
 
-    /**
-     * Consulta base de parcelas permitidas.
-     */
     private function parcelasPermitidas()
     {
         $user = Auth::user();
@@ -49,36 +41,30 @@ class DashboardController extends Controller
         return $query;
     }
 
-    /**
-     * Dashboard principal.
-     */
     public function index(Request $request)
     {
         $user = Auth::user();
-
-        // Filtro de cliente
         $clienteId = $request->cliente_id;
 
-        // Consulta de clientes permitidos
         $clientesQuery = Cliente::query();
 
         if (!$user->isAdmin()) {
             $clientesQuery->where('user_id', $user->id);
         }
 
-        // Consulta de contratos e parcelas permitidos
         $contratosQuery = $this->contratosPermitidos();
         $parcelasQuery = $this->parcelasPermitidas();
 
-        // Aplica filtro de cliente somente se ele for permitido
         if ($clienteId) {
             $clientePermitido = (clone $clientesQuery)
                 ->where('id', $clienteId)
                 ->exists();
 
-            if (!$clientePermitido) {
-                abort(403, 'Você não tem permissão para acessar os dados deste cliente.');
-            }
+            abort_unless(
+                $clientePermitido,
+                403,
+                'Você não tem permissão para acessar os dados deste cliente.'
+            );
 
             $contratosQuery->where('cliente_id', $clienteId);
 
@@ -87,108 +73,224 @@ class DashboardController extends Controller
             });
         }
 
-        // Contadores
-        $clientes = (clone $clientesQuery)->count();
+        $listaClientes = (clone $clientesQuery)
+            ->orderBy('nome')
+            ->get();
 
-        if ($clienteId) {
-            $clientes = 1;
+        /*
+        |--------------------------------------------------------------------------
+        | Contratos e parcelas com pagamentos
+        |--------------------------------------------------------------------------
+        */
+
+        $contratosFinanceiros = (clone $contratosQuery)
+            ->with([
+                'cliente',
+                'parcelas.pagamentos',
+            ])
+            ->get();
+
+        $clientes = $clienteId
+            ? 1
+            : $listaClientes->count();
+
+        $contratos = $contratosFinanceiros->count();
+
+        $capitalInvestido = 0;
+        $capitalRecuperado = 0;
+        $totalRecebido = 0;
+        $lucroObtido = 0;
+        $previsaoLucro = 0;
+
+        $parcelasPagas = 0;
+        $parcelasVencidas = 0;
+        $parcelasAVencer = 0;
+
+        $rankingDados = [];
+
+        $hoje = now()->toDateString();
+
+        foreach ($contratosFinanceiros as $contrato) {
+
+            $capitalContrato = (float) $contrato->valor;
+
+            $capitalInvestido += $capitalContrato;
+
+            $taxa = (float) $contrato->juros / 100;
+
+            $saldoDevedor = $capitalContrato;
+
+            $parcelasContrato = $contrato->parcelas
+                ->sortBy('numero');
+
+            foreach ($parcelasContrato as $parcela) {
+
+                $valorParcela = round((float) $parcela->valor, 2);
+
+                /*
+                 * Usa os juros gravados na parcela.
+                 * Para parcelas antigas sem composição financeira,
+                 * calcula os juros pelo saldo devedor e taxa do contrato.
+                 */
+
+                if ($parcela->juros_valor !== null) {
+                    $jurosParcela = (float) $parcela->juros_valor;
+                } else {
+                    $jurosParcela = round($saldoDevedor * $taxa, 2);
+                }
+
+                $jurosParcela = min(
+                    max(0, $jurosParcela),
+                    $valorParcela
+                );
+
+                $amortizacao = max(
+                    0,
+                    round($valorParcela - $jurosParcela, 2)
+                );
+
+                $saldoDevedor = max(
+                    0,
+                    round($saldoDevedor - $amortizacao, 2)
+                );
+
+                /*
+                 * Recebimentos reais da parcela.
+                 */
+
+                $pago = round(
+                    (float) $parcela->pagamentos->sum('valor'),
+                    2
+                );
+
+                $totalRecebido += $pago;
+
+                /*
+                 * Considera os juros recebidos primeiro.
+                 * O restante do pagamento amortiza o capital.
+                 */
+
+                $jurosRecebidos = min(
+                    $pago,
+                    $jurosParcela
+                );
+
+                $capitalRecebidoParcela = min(
+                    $amortizacao,
+                    max(0, round($pago - $jurosParcela, 2))
+                );
+
+                $lucroObtido += $jurosRecebidos;
+
+                $capitalRecuperado += $capitalRecebidoParcela;
+
+                /*
+                 * Lucro que ainda falta receber nesta parcela.
+                 */
+
+                $jurosRestantes = max(
+                    0,
+                    round($jurosParcela - $jurosRecebidos, 2)
+                );
+
+                $previsaoLucro += $jurosRestantes;
+
+                /*
+                 * Situação da parcela.
+                 */
+
+                $estaPaga = $parcela->status || $pago >= $valorParcela;
+
+                if ($estaPaga) {
+                    $parcelasPagas++;
+                } elseif ($parcela->data_vencimento->toDateString() < $hoje) {
+                    $parcelasVencidas++;
+                } else {
+                    $parcelasAVencer++;
+                }
+
+                /*
+                 * Ranking por lucro efetivamente recebido.
+                 */
+
+                $clienteNome = $contrato->cliente->nome ?? 'Cliente';
+
+                $clienteKey = $contrato->cliente_id;
+
+                if (!isset($rankingDados[$clienteKey])) {
+                    $rankingDados[$clienteKey] = [
+                        'nome' => $clienteNome,
+                        'lucro' => 0,
+                    ];
+                }
+
+                $rankingDados[$clienteKey]['lucro'] += $jurosRecebidos;
+            }
         }
 
-        $contratos = (clone $contratosQuery)->count();
+        $capitalInvestido = round($capitalInvestido, 2);
+        $capitalRecuperado = round($capitalRecuperado, 2);
+        $totalRecebido = round($totalRecebido, 2);
+        $lucroObtido = round($lucroObtido, 2);
+        $previsaoLucro = round($previsaoLucro, 2);
 
-        $parcelasPagas = (clone $parcelasQuery)
-            ->where('status', true)
-            ->count();
+        $capitalEmAberto = max(
+            0,
+            round($capitalInvestido - $capitalRecuperado, 2)
+        );
 
-        $parcelasVencidas = (clone $parcelasQuery)
-            ->where('data_vencimento', '<', now()->toDateString())
-            ->where('status', false)
-            ->count();
+        $lucroTotalPrevisto = round(
+            $lucroObtido + $previsaoLucro,
+            2
+        );
 
-        $parcelasAVencer = (clone $parcelasQuery)
-            ->where('data_vencimento', '>=', now()->toDateString())
-            ->where('status', false)
-            ->count();
+        /*
+        |--------------------------------------------------------------------------
+        | Calendário financeiro
+        |--------------------------------------------------------------------------
+        */
 
-        // Capital investido
-        $capitalInvestido = (clone $contratosQuery)->sum('valor');
-
-        // Lucro obtido com parcelas pagas
-        $lucroObtido = (clone $parcelasQuery)
-            ->where('parcelas.status', true)
-            ->join('contratos', 'parcelas.contrato_id', '=', 'contratos.id')
-            ->selectRaw('
-                COALESCE(
-                    SUM(
-                        (contratos.valor * contratos.juros / 100)
-                        / NULLIF(contratos.qtd_parcelas, 0)
-                    ),
-                    0
-                ) as lucro
-            ')
-            ->value('lucro');
-
-        // Previsão de lucro das parcelas ainda não pagas
-        $previsaoLucro = (clone $parcelasQuery)
-            ->where('parcelas.status', false)
-            ->join('contratos', 'parcelas.contrato_id', '=', 'contratos.id')
-            ->selectRaw('
-                COALESCE(
-                    SUM(
-                        (contratos.valor * contratos.juros / 100)
-                        / NULLIF(contratos.qtd_parcelas, 0)
-                    ),
-                    0
-                ) as lucro
-            ')
-            ->value('lucro');
-
-        // Calendário de parcelas
         $parcelasCalendario = (clone $parcelasQuery)
             ->join('contratos', 'parcelas.contrato_id', '=', 'contratos.id')
             ->join('clientes', 'contratos.cliente_id', '=', 'clientes.id')
             ->select(
                 'parcelas.id',
+                'parcelas.numero as numero_parcela',
                 'parcelas.data_vencimento',
                 'parcelas.valor',
                 'parcelas.status',
                 'contratos.id as contrato_id',
                 'clientes.nome as cliente'
             )
+            ->selectSub(function ($query) {
+                $query->from('pagamentos')
+                    ->selectRaw('COALESCE(SUM(pagamentos.valor), 0)')
+                    ->whereColumn('pagamentos.parcela_id', 'parcelas.id');
+            }, 'total_pago')
             ->orderBy('parcelas.data_vencimento')
             ->get()
             ->groupBy(function ($parcela) {
-                return $parcela->data_vencimento->format('Y-m-d');
+                return \Carbon\Carbon::parse(
+                    $parcela->data_vencimento
+                )->format('Y-m-d');
             });
 
-        // Lista de clientes permitidos
-        $listaClientes = (clone $clientesQuery)
-            ->orderBy('nome')
-            ->get();
+        /*
+        |--------------------------------------------------------------------------
+        | Ranking de clientes
+        |--------------------------------------------------------------------------
+        */
 
-        // Ranking de clientes por lucro
-        $rankingQuery = (clone $parcelasQuery)
-            ->where('parcelas.status', true)
-            ->join('contratos', 'parcelas.contrato_id', '=', 'contratos.id')
-            ->join('clientes', 'contratos.cliente_id', '=', 'clientes.id')
-            ->select(
-                'clientes.nome',
-                DB::raw('
-                    SUM(
-                        (contratos.valor * contratos.juros / 100)
-                        / NULLIF(contratos.qtd_parcelas, 0)
-                    ) as lucro
-                ')
-            )
-            ->groupBy('clientes.id', 'clientes.nome')
-            ->orderByDesc('lucro')
-            ->limit(5);
-
-        if ($clienteId) {
-            $rankingQuery->where('clientes.id', $clienteId);
-        }
-
-        $rankingClientes = $rankingQuery->get();
+        $rankingClientes = collect($rankingDados)
+            ->map(function ($dados) {
+                return (object) [
+                    'nome' => $dados['nome'],
+                    'lucro' => round($dados['lucro'], 2),
+                ];
+            })
+            ->sortByDesc('lucro')
+            ->take(5)
+            ->values();
 
         return view('dashboard', compact(
             'clientes',
@@ -198,17 +300,18 @@ class DashboardController extends Controller
             'parcelasAVencer',
             'parcelasPagas',
             'capitalInvestido',
+            'capitalRecuperado',
+            'capitalEmAberto',
+            'totalRecebido',
             'lucroObtido',
             'previsaoLucro',
+            'lucroTotalPrevisto',
             'parcelasCalendario',
             'listaClientes',
             'clienteId'
         ));
     }
 
-    /**
-     * Marcar parcela como paga.
-     */
     public function pagarParcela(Parcela $parcela)
     {
         $user = Auth::user();
@@ -226,21 +329,16 @@ class DashboardController extends Controller
         }
 
         $parcela->update([
-            'status' => true
+            'status' => true,
         ]);
 
         return response()->json([
-            'success' => true
+            'success' => true,
         ]);
     }
 
-    /**
-     * Exportar PDF das parcelas pendentes.
-     */
     public function exportarPdf(Request $request)
     {
-        $user = Auth::user();
-
         $parcelas = $this->parcelasPermitidas()
             ->with('contrato.cliente')
             ->where('status', false)

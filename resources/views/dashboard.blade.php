@@ -21,7 +21,38 @@
 
     {{-- INDICADORES --}}
     <div class="row g-3 mb-4">
+<div class="col-6 col-md-4 col-xl-2">
+    <div class="dash-card">
+        <div class="dash-icon green">
+            <i class="bi bi-cash-stack"></i>
+        </div>
+        <small>Total recebido</small>
+        <h5>R$ {{ number_format($totalRecebido, 2, ',', '.') }}</h5>
+        <span>Pagamentos registrados</span>
+    </div>
+</div>
 
+<div class="col-6 col-md-4 col-xl-2">
+    <div class="dash-card">
+        <div class="dash-icon cyan">
+            <i class="bi bi-piggy-bank"></i>
+        </div>
+        <small>Capital em aberto</small>
+        <h5>R$ {{ number_format($capitalEmAberto, 2, ',', '.') }}</h5>
+        <span>Capital ainda não recuperado</span>
+    </div>
+</div>
+
+<div class="col-6 col-md-4 col-xl-2">
+    <div class="dash-card">
+        <div class="dash-icon purple">
+            <i class="bi bi-graph-up"></i>
+        </div>
+        <small>Lucro realizado</small>
+        <h5 class="text-success">R$ {{ number_format($lucroObtido, 2, ',', '.') }}</h5>
+        <span>Juros efetivamente recebidos</span>
+    </div>
+</div>
         <div class="col-6 col-md-4 col-xl-2">
             <div class="dash-card">
                 <div class="dash-icon blue"><i class="bi bi-people"></i></div>
@@ -775,8 +806,12 @@ function selecionarData(data) {
     parcelasDia.forEach(p => {
         total += Number(p.valor);
 
-        const paga = Number(p.status) === 1 || p.status === true;
-        const vencida = data < hojeLocal() && !paga;
+const totalPago = Number(p.total_pago || 0);
+const valorParcela = Number(p.valor || 0);
+
+const paga = p.status === true ||
+    Number(p.status) === 1 ||
+    totalPago >= valorParcela;        const vencida = data < hojeLocal() && !paga;
 
         const status = paga
             ? '<span class="status-label status-paid">PAGA</span>'
