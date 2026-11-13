@@ -13,11 +13,20 @@
     <div class="m1r7-sidebar-section">MENU PRINCIPAL</div>
 
     <ul class="nav flex-column m1r7-sidebar-nav">
+
         <li class="nav-item">
             <a class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}"
                href="{{ route('dashboard') }}">
                 <i class="fas fa-chart-line"></i>
                 <span>Dashboard</span>
+            </a>
+        </li>
+
+        <li class="nav-item">
+            <a class="nav-link {{ request()->routeIs('fluxo-caixa.*') ? 'active' : '' }}"
+               href="{{ route('fluxo-caixa.index') }}">
+                <i class="fas fa-cash-register"></i>
+                <span>Fluxo de Caixa</span>
             </a>
         </li>
 
@@ -60,6 +69,7 @@
                 <span>Configurações</span>
             </a>
         </li>
+
     </ul>
 
     <div class="m1r7-sidebar-footer">

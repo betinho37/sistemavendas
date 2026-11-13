@@ -11,7 +11,7 @@ use App\Http\Controllers\ClienteDocumentoController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\CalculadoraController;
 use App\Http\Controllers\PagamentoController;
-
+use App\Http\Controllers\FluxoCaixaController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -19,7 +19,15 @@ Route::get('/', function () {
 });
 
 Route::middleware('auth')->group(function () {
+// FLUXO DE CAIXA
+Route::get('/fluxo-caixa', [FluxoCaixaController::class, 'index'])
+    ->name('fluxo-caixa.index');
 
+Route::post('/fluxo-caixa', [FluxoCaixaController::class, 'store'])
+    ->name('fluxo-caixa.store');
+
+Route::delete('/fluxo-caixa/{id}', [FluxoCaixaController::class, 'destroy'])
+    ->name('fluxo-caixa.destroy');
     // DASHBOARD
     Route::get('/dashboard', [DashboardController::class, 'index'])
         ->name('dashboard');
