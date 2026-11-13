@@ -1,38 +1,93 @@
+
 <x-guest-layout>
-    <form method="POST" action="{{ route('password.store') }}">
+    <div class="mb-6">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
+            Criar nova senha
+        </h2>
+
+        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            Cadastre uma nova senha para acessar sua conta.
+        </p>
+    </div>
+
+    <form method="POST" action="{{ route('password.store') }}" class="space-y-5">
         @csrf
 
-        <!-- Password Reset Token -->
-        <input type="hidden" name="token" value="{{ $request->route('token') }}">
+        <input
+            type="hidden"
+            name="token"
+            value="{{ $request->route('token') }}"
+        >
 
-        <!-- Email Address -->
         <div>
-            <x-input-label for="email" :value="__('Email')" />
-            <x-text-input id="email" class="block mt-1 w-full" type="email" name="email" :value="old('email', $request->email)" required autofocus autocomplete="username" />
-            <x-input-error :messages="$errors->get('email')" class="mt-2" />
+            <x-input-label for="email" value="E-mail" />
+
+            <x-text-input
+                id="email"
+                class="block mt-1 w-full"
+                type="email"
+                name="email"
+                :value="old('email', $request->email)"
+                required
+                autofocus
+                autocomplete="username"
+                placeholder="Seu e-mail"
+            />
+
+            <x-input-error
+                :messages="$errors->get('email')"
+                class="mt-2"
+            />
         </div>
 
-        <!-- Password -->
-        <div class="mt-4">
-            <x-input-label for="password" :value="__('Password')" />
-            <x-text-input id="password" class="block mt-1 w-full" type="password" name="password" required autocomplete="new-password" />
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
+        <div>
+            <x-input-label for="password" value="Nova senha" />
+
+            <x-text-input
+                id="password"
+                class="block mt-1 w-full"
+                type="password"
+                name="password"
+                required
+                autocomplete="new-password"
+                placeholder="Digite sua nova senha"
+            />
+
+            <x-input-error
+                :messages="$errors->get('password')"
+                class="mt-2"
+            />
         </div>
 
-        <!-- Confirm Password -->
-        <div class="mt-4">
-            <x-input-label for="password_confirmation" :value="__('Confirm Password')" />
+        <div>
+            <x-input-label for="password_confirmation" value="Confirmar nova senha" />
 
-            <x-text-input id="password_confirmation" class="block mt-1 w-full"
-                                type="password"
-                                name="password_confirmation" required autocomplete="new-password" />
+            <x-text-input
+                id="password_confirmation"
+                class="block mt-1 w-full"
+                type="password"
+                name="password_confirmation"
+                required
+                autocomplete="new-password"
+                placeholder="Digite novamente sua nova senha"
+            />
 
-            <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
+            <x-input-error
+                :messages="$errors->get('password_confirmation')"
+                class="mt-2"
+            />
         </div>
 
-        <div class="flex items-center justify-end mt-4">
-            <x-primary-button>
-                {{ __('Reset Password') }}
+        <div class="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-2">
+            <a
+                href="{{ route('login') }}"
+                class="inline-flex items-center justify-center px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition"
+            >
+                Voltar ao login
+            </a>
+
+            <x-primary-button class="w-full sm:w-auto justify-center">
+                Redefinir senha
             </x-primary-button>
         </div>
     </form>
