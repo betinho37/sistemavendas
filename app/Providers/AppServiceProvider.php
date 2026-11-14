@@ -43,7 +43,7 @@ class AppServiceProvider extends ServiceProvider
                 return;
             }
 
-            $anteriores = $registro->getPrevious();
+            $anteriores = $registro->getRawOriginal();
 
             $dadosAnteriores = [];
             $dadosNovos = [];
