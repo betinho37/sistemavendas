@@ -1,3 +1,4 @@
+
 <?php
 
 namespace App\Http\Requests;
@@ -11,6 +12,19 @@ class ClienteRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $cpf = trim((string) $this->input('cpf', ''));
+
+        if ($cpf === '' || $cpf === '000.000.000-00' || $cpf === '00000000000') {
+            $cpf = null;
+        }
+
+        $this->merge([
+            'cpf' => $cpf,
+        ]);
+    }
+
     public function rules()
     {
         return [
@@ -20,9 +34,9 @@ class ClienteRequest extends FormRequest
             'estado_civil'    => 'nullable|string',
             'endereco'        => 'required|string',
             'fone'            => 'required|string',
-            'cpf'             => 'required|string',
+            'cpf'             => 'nullable|string|max:14',
             'email'           => 'required|email',
-            'foto' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240',
+            'foto'            => 'nullable|image|mimes:jpg,jpeg,png,webp|max:10240',
             'documentos.*'    => 'nullable|file|mimes:pdf,jpg,jpeg,png,gif|max:10240',
             'observacoes'     => 'nullable|string',
         ];
