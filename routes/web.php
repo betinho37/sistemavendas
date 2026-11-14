@@ -13,6 +13,12 @@ use App\Http\Controllers\CalculadoraController;
 use App\Http\Controllers\PagamentoController;
 use App\Http\Controllers\FluxoCaixaController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AuditoriaController;
+
+
+
+
+
 
 Route::get('/', function () {
     return redirect('/login');
@@ -137,6 +143,9 @@ Route::middleware('auth')->group(function () {
 
     Route::post('/configuracoes/salvar', [ConfiguracoesController::class, 'salvar'])
         ->name('configuracoes.salvar');
+
+        Route::get('/auditoria', [AuditoriaController::class, 'index'])
+    ->name('auditoria.index');
 });
 
 require __DIR__ . '/auth.php';
