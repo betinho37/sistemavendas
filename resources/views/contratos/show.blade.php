@@ -214,7 +214,6 @@
         font-size: 11px;
     }
 
-    /* VISUALIZAÇÃO MOBILE */
     .parcelas-mobile {
         display: none;
     }
@@ -291,7 +290,6 @@
         min-width: 0;
     }
 
-    /* RESPONSIVIDADE */
     @media(max-width: 767px) {
         .contrato-detalhes {
             padding-left: 0;
@@ -374,7 +372,6 @@
 
 <div class="container-fluid contrato-detalhes py-2">
 
-    {{-- CABEÇALHO --}}
     <div class="d-flex justify-content-between align-items-center mb-3 gap-2">
         <div class="min-w-0">
             <h5 class="text-white mb-1">Detalhes do contrato</h5>
@@ -400,9 +397,7 @@
         </div>
     @endif
 
-    {{-- INDICADORES --}}
     <div class="row g-2 mb-3">
-
         <div class="col-6 col-xl-3">
             <div class="indicador">
                 <small>Capital emprestado</small>
@@ -432,19 +427,15 @@
                 </strong>
             </div>
         </div>
-
     </div>
 
-    {{-- INFORMAÇÕES DO CONTRATO --}}
     <div class="painel mb-3">
-
         <div class="painel-header">
             <h6 class="text-white mb-0">Informações do contrato</h6>
         </div>
 
         <div class="painel-corpo p-3">
             <div class="row">
-
                 <div class="col-md-4">
                     <div class="detalhe-item">
                         <small>Cliente</small>
@@ -495,20 +486,16 @@
                         <strong>{{ $contrato->observacao ?: 'Nenhuma' }}</strong>
                     </div>
                 </div>
-
             </div>
         </div>
     </div>
 
-    {{-- RESUMO DOS RECEBIMENTOS --}}
     <div class="painel mb-3">
-
         <div class="painel-header">
             <h6 class="text-white mb-0">Resumo dos recebimentos</h6>
         </div>
 
         <div class="painel-corpo p-3">
-
             <div class="row mb-3">
                 <div class="col-4 text-center">
                     <strong class="text-success fs-5">{{ $parcelasPagas }}</strong>
@@ -534,13 +521,10 @@
             <div class="barra-progresso">
                 <div style="width: {{ $percentualRecebido }}%"></div>
             </div>
-
         </div>
     </div>
 
-    {{-- PARCELAS --}}
     <div class="painel mb-3">
-
         <div class="painel-header d-flex justify-content-between align-items-center">
             <h6 class="text-white mb-0">Parcelas e recebimentos</h6>
             <span class="badge bg-secondary">{{ $totalParcelas }} parcelas</span>
@@ -548,11 +532,10 @@
 
         <div class="painel-corpo p-2">
 
-            {{-- DESKTOP: TABELA --}}
+            {{-- DESKTOP --}}
             <div class="parcelas-desktop">
                 <div class="table-responsive">
                     <table class="table table-dark table-hover align-middle">
-
                         <thead>
                             <tr>
                                 <th>Nº</th>
@@ -567,7 +550,6 @@
 
                         <tbody>
                             @forelse($contrato->parcelas as $parcela)
-
                                 @php
                                     $recebido = (float) $parcela->pagamentos->sum('valor');
                                     $saldo = max(0, (float) $parcela->valor - $recebido);
@@ -581,7 +563,6 @@
                                     </td>
 
                                     <td class="text-nowrap">{{ $moeda($parcela->valor) }}</td>
-
                                     <td class="text-success text-nowrap">{{ $moeda($recebido) }}</td>
 
                                     <td class="{{ $saldo > 0 ? 'text-warning' : 'text-success' }} text-nowrap">
@@ -610,7 +591,6 @@
                                                        name="valor"
                                                        class="form-control form-control-sm mb-1"
                                                        min="0.01"
-                                                       max="{{ number_format($saldo, 2, '.', '') }}"
                                                        step="0.01"
                                                        placeholder="Valor recebido"
                                                        required>
@@ -676,19 +656,16 @@
                                     </td>
                                 </tr>
 
-                                {{-- HISTÓRICO DESKTOP --}}
                                 @if($parcela->pagamentos->isNotEmpty())
                                     <tr>
                                         <td colspan="7">
                                             <div class="historico">
-
                                                 <div class="fw-semibold text-white small mb-1">
                                                     Histórico de recebimentos
                                                 </div>
 
                                                 @foreach($parcela->pagamentos as $pagamento)
                                                     <div class="historico-item">
-
                                                         <div class="d-flex flex-wrap justify-content-between gap-2">
                                                             <div>
                                                                 <span class="texto-secundario">
@@ -708,9 +685,7 @@
                                                             </div>
                                                         </div>
 
-                                                        {{-- RECIBO E COMPROVANTE --}}
                                                         <div class="botoes-comprovante">
-
                                                             <a href="{{ route('pagamentos.recibo', $pagamento->id) }}"
                                                                target="_blank"
                                                                class="btn btn-outline-light btn-sm">
@@ -732,10 +707,8 @@
                                                                     Baixar comprovante
                                                                 </a>
                                                             @endif
-
                                                         </div>
 
-                                                        {{-- EDITAR RECEBIMENTO --}}
                                                         <details>
                                                             <summary>Editar recebimento</summary>
 
@@ -787,16 +760,14 @@
                                                                     @csrf
                                                                     @method('DELETE')
 
-                                                                    <button class="btn btn-outline-danger btn-sm w-100">
+                                                                    <button type="submit" class="btn btn-outline-danger btn-sm w-100">
                                                                         Excluir recebimento
                                                                     </button>
                                                                 </form>
                                                             </div>
                                                         </details>
-
                                                     </div>
                                                 @endforeach
-
                                             </div>
                                         </td>
                                     </tr>
@@ -810,23 +781,19 @@
                                 </tr>
                             @endforelse
                         </tbody>
-
                     </table>
                 </div>
             </div>
 
-            {{-- MOBILE: CARTÕES DE PARCELAS --}}
+            {{-- MOBILE --}}
             <div class="parcelas-mobile">
-
                 @forelse($contrato->parcelas as $parcela)
-
                     @php
                         $recebido = (float) $parcela->pagamentos->sum('valor');
                         $saldo = max(0, (float) $parcela->valor - $recebido);
                     @endphp
 
                     <div class="parcela-card">
-
                         <div class="parcela-card-header">
                             <strong>Parcela {{ $parcela->numero }}</strong>
 
@@ -840,7 +807,6 @@
                         </div>
 
                         <div class="parcela-card-info">
-
                             <div class="item">
                                 <small>Vencimento</small>
                                 <strong>{{ $parcela->data_vencimento->format('d/m/Y') }}</strong>
@@ -862,12 +828,9 @@
                                     {{ $moeda($saldo) }}
                                 </strong>
                             </div>
-
                         </div>
 
                         <div class="parcela-card-acoes">
-
-                            {{-- REGISTRAR RECEBIMENTO MOBILE --}}
                             @if($saldo > 0)
                                 <details>
                                     <summary>
@@ -887,7 +850,6 @@
                                                    name="valor"
                                                    class="form-control mb-2"
                                                    min="0.01"
-                                                   max="{{ number_format($saldo, 2, '.', '') }}"
                                                    step="0.01"
                                                    placeholder="Informe o valor"
                                                    required>
@@ -917,7 +879,6 @@
                                 </div>
                             @endif
 
-                            {{-- EDITAR PARCELA MOBILE --}}
                             <details>
                                 <summary>
                                     <span class="btn btn-warning">
@@ -960,23 +921,17 @@
                                     </form>
                                 </div>
                             </details>
-
                         </div>
 
-                        {{-- HISTÓRICO NO MOBILE --}}
                         @if($parcela->pagamentos->isNotEmpty())
-
                             <details>
                                 <summary>
                                     Histórico de recebimentos ({{ $parcela->pagamentos->count() }})
                                 </summary>
 
                                 <div class="historico">
-
                                     @foreach($parcela->pagamentos as $pagamento)
-
                                         <div class="historico-item">
-
                                             <div class="d-flex justify-content-between flex-wrap gap-2 mb-2">
                                                 <strong class="text-success">
                                                     {{ $moeda($pagamento->valor) }}
@@ -994,9 +949,7 @@
                                                 </strong>
                                             </div>
 
-                                            {{-- RECIBO E COMPROVANTE MOBILE --}}
                                             <div class="botoes-comprovante">
-
                                                 <a href="{{ route('pagamentos.recibo', $pagamento->id) }}"
                                                    target="_blank"
                                                    class="btn btn-outline-light btn-sm">
@@ -1018,15 +971,12 @@
                                                         Baixar comprovante
                                                     </a>
                                                 @endif
-
                                             </div>
 
-                                            {{-- EDITAR RECEBIMENTO MOBILE --}}
                                             <details>
                                                 <summary>Editar recebimento</summary>
 
                                                 <div class="editor">
-
                                                     <form action="{{ route('pagamentos.update', $pagamento->id) }}"
                                                           method="POST"
                                                           enctype="multipart/form-data">
@@ -1078,37 +1028,25 @@
                                                             Excluir recebimento
                                                         </button>
                                                     </form>
-
                                                 </div>
                                             </details>
-
                                         </div>
-
                                     @endforeach
-
                                 </div>
                             </details>
-
                         @endif
-
                     </div>
-
                 @empty
-
                     <div class="text-center text-warning py-4">
                         Nenhuma parcela cadastrada.
                     </div>
-
                 @endforelse
-
             </div>
 
         </div>
     </div>
 
-    {{-- AÇÕES DO CONTRATO --}}
     <div class="acoes mb-3">
-
         <a href="{{ route('contratos.index') }}" class="btn btn-secondary btn-sm">
             Voltar
         </a>
@@ -1133,7 +1071,6 @@
                 Excluir contrato
             </button>
         </form>
-
     </div>
 
 </div>

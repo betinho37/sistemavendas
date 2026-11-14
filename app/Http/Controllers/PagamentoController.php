@@ -1,3 +1,4 @@
+
 <?php
 
 namespace App\Http\Controllers;
@@ -9,7 +10,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Validation\ValidationException;
 
 class PagamentoController extends Controller
 {
@@ -67,29 +67,7 @@ class PagamentoController extends Controller
 
             $this->verificarAcesso($parcelaAtual);
 
-            $totalPago = (float) $parcelaAtual->pagamentos()->sum('valor');
-            $valorParcela = (float) $parcelaAtual->valor;
-            $saldo = round($valorParcela - $totalPago, 2);
             $valorPagamento = round((float) $dados['valor'], 2);
-
-            if ($parcelaAtual->status && $totalPago == 0) {
-                throw ValidationException::withMessages([
-                    'valor' => 'Esta parcela está marcada como paga, mas não possui histórico de recebimentos.',
-                ]);
-            }
-
-            if ($saldo <= 0) {
-                throw ValidationException::withMessages([
-                    'valor' => 'Esta parcela já está totalmente paga.',
-                ]);
-            }
-
-            if ($valorPagamento > $saldo) {
-                throw ValidationException::withMessages([
-                    'valor' => 'O pagamento ultrapassa o saldo restante de R$ '
-                        . number_format($saldo, 2, ',', '.') . '.',
-                ]);
-            }
 
             $pagamento = $parcelaAtual->pagamentos()->create([
                 'user_id' => Auth::id(),
@@ -145,15 +123,7 @@ class PagamentoController extends Controller
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            $totalAtual = (float) $parcela->pagamentos()->sum('valor');
-            $outrosPagamentos = $totalAtual - (float) $pagamento->valor;
             $novoValor = round((float) $dados['valor'], 2);
-
-            if (round($outrosPagamentos + $novoValor, 2) > (float) $parcela->valor) {
-                throw ValidationException::withMessages([
-                    'valor' => 'A soma dos recebimentos ultrapassa o valor da parcela.',
-                ]);
-            }
 
             $pagamento->valor = $novoValor;
             $pagamento->data_pagamento = $dados['data_pagamento'];
@@ -187,15 +157,32 @@ class PagamentoController extends Controller
 
         $this->verificarAcessoPagamento($pagamento);
 
-        abort_unless(
-            $pagamento->comprovante &&
-            Storage::disk('local')->exists($pagamento->comprovante),
-            404
-        );
+        $disk = Storage::disk('local');
+        $arquivo = $pagamento->comprovante;
 
-        return response()->file(
-            Storage::disk('local')->path($pagamento->comprovante)
-        );
+        abort_unless($arquivo && $disk->exists($arquivo), 404);
+
+        $caminho = $disk->path($arquivo);
+        $mime = $disk->mimeType($arquivo) ?: 'application/octet-stream';
+
+        return response()->stream(function () use ($caminho) {
+            while (ob_get_level() > 0) {
+                ob_end_clean();
+            }
+
+            $handle = fopen($caminho, 'rb');
+
+            if ($handle !== false) {
+                fpassthru($handle);
+                fclose($handle);
+            }
+        }, 200, [
+            'Content-Type' => $mime,
+            'Content-Disposition' => 'inline; filename="' . basename($arquivo) . '"',
+            'Content-Length' => (string) filesize($caminho),
+            'X-Content-Type-Options' => 'nosniff',
+            'Cache-Control' => 'private, no-store',
+        ]);
     }
 
     public function baixarComprovante($pagamentoId)

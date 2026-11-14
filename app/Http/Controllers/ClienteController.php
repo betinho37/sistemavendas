@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ClienteRequest;
 use App\Models\Cliente;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
@@ -19,13 +20,44 @@ class ClienteController extends Controller
             });
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $clientes = $this->clientesPermitidos()
-            ->latest()
-            ->paginate(10);
+        $busca = trim($request->input('busca', ''));
+        $ordem = $request->input('ordem', 'recentes');
 
-        return view('clientes.index', compact('clientes'));
+        if (!in_array($ordem, ['recentes', 'nome_asc', 'nome_desc'], true)) {
+            $ordem = 'recentes';
+        }
+
+        $clientes = $this->clientesPermitidos()
+            ->with('documentos')
+            ->when($busca !== '', function ($query) use ($busca) {
+                $query->where(function ($q) use ($busca) {
+                    $q->where('nome', 'like', "%{$busca}%")
+                        ->orWhere('fone', 'like', "%{$busca}%")
+                        ->orWhere('cpf', 'like', "%{$busca}%")
+                        ->orWhere('email', 'like', "%{$busca}%");
+                });
+            })
+            ->when($ordem === 'nome_asc', function ($query) {
+                $query->orderByRaw('LOWER(nome) ASC')
+                    ->orderBy('id', 'asc');
+            })
+            ->when($ordem === 'nome_desc', function ($query) {
+                $query->orderByRaw('LOWER(nome) DESC')
+                    ->orderBy('id', 'desc');
+            })
+            ->when($ordem === 'recentes', function ($query) {
+                $query->latest();
+            })
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('clientes.index', compact(
+            'clientes',
+            'busca',
+            'ordem'
+        ));
     }
 
     public function create()
