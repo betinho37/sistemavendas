@@ -20,45 +20,39 @@ class ClienteController extends Controller
             });
     }
 
-    public function index(Request $request)
-    {
-        $busca = trim($request->input('busca', ''));
-        $ordem = $request->input('ordem', 'recentes');
+public function index(Request $request)
+{
+    $busca = trim($request->input('busca', ''));
+    $ordem = $request->input('ordem', 'recentes');
 
-        if (!in_array($ordem, ['recentes', 'nome_asc', 'nome_desc'], true)) {
-            $ordem = 'recentes';
-        }
-
-        $clientes = $this->clientesPermitidos()
-            ->with('documentos')
-            ->when($busca !== '', function ($query) use ($busca) {
-                $query->where(function ($q) use ($busca) {
-                    $q->where('nome', 'like', "%{$busca}%")
-                        ->orWhere('fone', 'like', "%{$busca}%")
-                        ->orWhere('cpf', 'like', "%{$busca}%")
-                        ->orWhere('email', 'like', "%{$busca}%");
-                });
-            })
-            ->when($ordem === 'nome_asc', function ($query) {
-                $query->orderByRaw('LOWER(nome) ASC')
-                    ->orderBy('id', 'asc');
-            })
-            ->when($ordem === 'nome_desc', function ($query) {
-                $query->orderByRaw('LOWER(nome) DESC')
-                    ->orderBy('id', 'desc');
-            })
-            ->when($ordem === 'recentes', function ($query) {
-                $query->latest();
-            })
-            ->paginate(10)
-            ->withQueryString();
-
-        return view('clientes.index', compact(
-            'clientes',
-            'busca',
-            'ordem'
-        ));
+    if (!in_array($ordem, ['recentes', 'nome_asc', 'nome_desc'])) {
+        $ordem = 'recentes';
     }
+
+    $query = $this->clientesPermitidos()
+        ->with('documentos');
+
+    if ($busca !== '') {
+        $query->where(function ($q) use ($busca) {
+            $q->where('nome', 'like', "%{$busca}%")
+              ->orWhere('fone', 'like', "%{$busca}%")
+              ->orWhere('cpf', 'like', "%{$busca}%")
+              ->orWhere('email', 'like', "%{$busca}%");
+        });
+    }
+
+    if ($ordem === 'nome_asc') {
+        $query->orderByRaw('LOWER(nome) ASC');
+    } elseif ($ordem === 'nome_desc') {
+        $query->orderByRaw('LOWER(nome) DESC');
+    } else {
+        $query->latest();
+    }
+
+    $clientes = $query->paginate(10)->withQueryString();
+
+    return view('clientes.index', compact('clientes', 'busca', 'ordem'));
+}
 
     public function create()
     {
