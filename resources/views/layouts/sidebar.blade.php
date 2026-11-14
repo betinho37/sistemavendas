@@ -62,6 +62,16 @@
             </a>
         </li>
 
+        @if(auth()->check() && auth()->user()->isAdmin())
+            <li class="nav-item">
+                <a class="nav-link {{ request()->routeIs('auditoria.*') ? 'active' : '' }}"
+                   href="{{ route('auditoria.index') }}">
+                    <i class="fas fa-clipboard-list"></i>
+                    <span>Auditoria</span>
+                </a>
+            </li>
+        @endif
+
         <li class="nav-item">
             <a class="nav-link {{ request()->routeIs('configuracoes.*') ? 'active' : '' }}"
                href="{{ route('configuracoes.index') }}">
