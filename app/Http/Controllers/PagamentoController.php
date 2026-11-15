@@ -16,6 +16,8 @@ class PagamentoController extends Controller
     {
         $user = Auth::user();
 
+        abort_unless($user, 403);
+
         if (!$user->isAdmin()) {
             $permitida = $parcela->contrato()
                 ->whereHas('cliente', function ($query) use ($user) {
@@ -30,7 +32,20 @@ class PagamentoController extends Controller
     private function verificarAcessoPagamento(Pagamento $pagamento): void
     {
         $pagamento->loadMissing('parcela.contrato.cliente');
+
         $this->verificarAcesso($pagamento->parcela);
+    }
+
+    private function verificarPagamentoManual(Pagamento $pagamento): void
+    {
+        $observacao = trim((string) $pagamento->observacao);
+
+        if (str_contains($observacao, 'Pagamento via Portal - Solicitação #')) {
+            abort(
+                403,
+                'Este recebimento foi aprovado pelo Portal do Cliente e não pode ser editado ou excluído individualmente.'
+            );
+        }
     }
 
     private function atualizarStatus(Parcela $parcela): void
@@ -41,6 +56,19 @@ class PagamentoController extends Controller
         $parcela->update([
             'status' => $totalPago >= $valorParcela,
         ]);
+    }
+
+    private function excluirComprovanteSeNaoUtilizado(?string $arquivo): void
+    {
+        if (!$arquivo) {
+            return;
+        }
+
+        if (Pagamento::where('comprovante', $arquivo)->exists()) {
+            return;
+        }
+
+        Storage::disk('local')->delete($arquivo);
     }
 
     public function store(Request $request, Parcela $parcela)
@@ -78,7 +106,9 @@ class PagamentoController extends Controller
                 $caminho = $arquivo->store('comprovantes', 'local');
 
                 if (!$caminho) {
-                    throw new \RuntimeException('Não foi possível salvar o comprovante.');
+                    throw new \RuntimeException(
+                        'Não foi possível salvar o comprovante.'
+                    );
                 }
 
                 $pagamento->comprovante = $caminho;
@@ -122,20 +152,22 @@ class PagamentoController extends Controller
                 ->lockForUpdate()
                 ->firstOrFail();
 
+            $this->verificarPagamentoManual($pagamento);
+
             $novoValor = round((float) $dados['valor'], 2);
 
             $pagamento->valor = $novoValor;
             $pagamento->data_pagamento = $dados['data_pagamento'];
 
+            $comprovanteAntigo = $pagamento->comprovante;
+
             if ($arquivo) {
                 $novoComprovante = $arquivo->store('comprovantes', 'local');
 
                 if (!$novoComprovante) {
-                    throw new \RuntimeException('Não foi possível salvar o comprovante.');
-                }
-
-                if ($pagamento->comprovante) {
-                    Storage::disk('local')->delete($pagamento->comprovante);
+                    throw new \RuntimeException(
+                        'Não foi possível salvar o comprovante.'
+                    );
                 }
 
                 $pagamento->comprovante = $novoComprovante;
@@ -145,7 +177,16 @@ class PagamentoController extends Controller
 
             $this->atualizarStatus($parcela);
 
-            return back()->with('success', 'Recebimento atualizado com sucesso!');
+            if ($arquivo && $comprovanteAntigo) {
+                DB::afterCommit(function () use ($comprovanteAntigo) {
+                    $this->excluirComprovanteSeNaoUtilizado($comprovanteAntigo);
+                });
+            }
+
+            return back()->with(
+                'success',
+                'Recebimento atualizado com sucesso!'
+            );
         });
     }
 
@@ -217,15 +258,24 @@ class PagamentoController extends Controller
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ($pagamento->comprovante) {
-                Storage::disk('local')->delete($pagamento->comprovante);
-            }
+            $this->verificarPagamentoManual($pagamento);
+
+            $comprovante = $pagamento->comprovante;
 
             $pagamento->delete();
 
             $this->atualizarStatus($parcela);
 
-            return back()->with('success', 'Recebimento excluído com sucesso!');
+            if ($comprovante) {
+                DB::afterCommit(function () use ($comprovante) {
+                    $this->excluirComprovanteSeNaoUtilizado($comprovante);
+                });
+            }
+
+            return back()->with(
+                'success',
+                'Recebimento excluído com sucesso!'
+            );
         });
     }
 
@@ -243,7 +293,10 @@ class PagamentoController extends Controller
         $cliente = $contrato->cliente;
 
         $totalRecebido = (float) $parcela->pagamentos->sum('valor');
-        $saldoRestante = max(0, (float) $parcela->valor - $totalRecebido);
+        $saldoRestante = max(
+            0,
+            (float) $parcela->valor - $totalRecebido
+        );
 
         $pdf = Pdf::loadView('pagamentos.recibo', compact(
             'pagamento',
