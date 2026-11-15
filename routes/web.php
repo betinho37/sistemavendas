@@ -14,8 +14,8 @@ use App\Http\Controllers\PagamentoController;
 use App\Http\Controllers\FluxoCaixaController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuditoriaController;
-
-
+use App\Http\Controllers\ClientePortalController;
+use App\Http\Controllers\SolicitacaoPagamentoAdminController;
 
 
 
@@ -24,8 +24,31 @@ Route::get('/', function () {
     return redirect('/login');
 });
 
+Route::get('/portal/{token}', [\App\Http\Controllers\PortalClienteController::class, 'show'])
+    ->name('portal.cliente.show');
+
+Route::post('/portal/{token}/solicitacoes', [\App\Http\Controllers\PortalClienteController::class, 'store'])
+    ->middleware('throttle:10,1')
+    ->name('portal.cliente.solicitacoes.store');
+
 Route::middleware('auth')->group(function () {
 
+// SOLICITAÇÕES DE PAGAMENTO DO PORTAL
+Route::prefix('admin/solicitacoes-pagamento')
+    ->name('admin.solicitacoes-pagamento.')
+    ->controller(SolicitacaoPagamentoAdminController::class)
+    ->group(function () {
+        Route::get('/', 'index')->name('index');
+        Route::get('/{id}', 'show')->name('show');
+        Route::get('/{id}/comprovante', 'comprovante')->name('comprovante');
+        Route::post('/{id}/aprovar', 'aprovar')->name('aprovar');
+        Route::post('/{id}/rejeitar', 'rejeitar')->name('rejeitar');
+    });
+Route::post('/clientes/{cliente}/portal/gerar', [ClientePortalController::class, 'gerar'])
+    ->name('clientes.portal.gerar');
+
+Route::post('/clientes/{cliente}/portal/revogar', [ClientePortalController::class, 'revogar'])
+    ->name('clientes.portal.revogar');
     // FLUXO DE CAIXA
     Route::get('/fluxo-caixa', [FluxoCaixaController::class, 'index'])
         ->name('fluxo-caixa.index');
@@ -146,6 +169,8 @@ Route::middleware('auth')->group(function () {
 
         Route::get('/auditoria', [AuditoriaController::class, 'index'])
     ->name('auditoria.index');
+
+
 });
 
 require __DIR__ . '/auth.php';
