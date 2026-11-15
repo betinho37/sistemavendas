@@ -132,6 +132,9 @@
                             </td>
                             <td>
                                 <div class="d-flex gap-2">
+<a href="{{ route('clientes.show', $cliente) }}" class="btn btn-info btn-sm">
+    <i class="fas fa-link"></i> Portal
+</a>
                                     <a href="{{ route('clientes.edit', $cliente) }}" class="btn btn-warning btn-sm">✏️ Editar</a>
                                     <form action="{{ route('clientes.destroy', $cliente) }}" method="POST"
                                           onsubmit="return confirm('Tem certeza que deseja excluir este cliente? Todos os dados serão removidos!')">
@@ -197,6 +200,9 @@
                         </div>
 
                         <div class="cliente-card-acoes">
+                            <a href="{{ route('clientes.show', $cliente) }}" class="btn btn-info btn-sm">
+    <i class="fas fa-link"></i> Portal
+</a>
                             <a href="{{ route('clientes.edit', $cliente) }}" class="btn btn-warning btn-sm">✏️ Editar</a>
                             <form action="{{ route('clientes.destroy', $cliente) }}" method="POST"
                                   onsubmit="return confirm('Tem certeza que deseja excluir este cliente? Todos os dados serão removidos!')">
