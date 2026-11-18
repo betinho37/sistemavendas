@@ -1,176 +1,651 @@
 
-<?php
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\ClienteController;
-use App\Http\Controllers\ContratoController;
-use App\Http\Controllers\ParcelaController;
-use App\Http\Controllers\WhatsAppController;
-use App\Http\Controllers\ConfiguracoesController;
-use App\Http\Controllers\ClienteDocumentoController;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\CalculadoraController;
-use App\Http\Controllers\PagamentoController;
-use App\Http\Controllers\FluxoCaixaController;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\AuditoriaController;
-use App\Http\Controllers\ClientePortalController;
-use App\Http\Controllers\SolicitacaoPagamentoAdminController;
+    <title>Portal do Cliente | m1r4ge7</title>
+    <meta name="theme-color" content="#101010">
 
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
 
+    <style>
+        * { box-sizing: border-box; }
 
+        body {
+            margin: 0;
+            background: #101010;
+            color: #e8edf5;
+            font-family: Arial, sans-serif;
+        }
 
-Route::get('/', function () {
-    return redirect('/login');
-});
+        .portal-header {
+            background: #181818;
+            border-bottom: 1px solid #303030;
+            padding: 18px 0;
+        }
 
-Route::get('/portal/{token}', [\App\Http\Controllers\PortalClienteController::class, 'show'])
-    ->name('portal.cliente.show');
+        .portal-brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #fff;
+        }
 
-Route::post('/portal/{token}/solicitacoes', [\App\Http\Controllers\PortalClienteController::class, 'store'])
-    ->middleware('throttle:10,1')
-    ->name('portal.cliente.solicitacoes.store');
+        .portal-brand-icon {
+            width: 42px;
+            height: 42px;
+            background: linear-gradient(135deg, #0879bd, #12b8a6);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 19px;
+        }
 
-Route::middleware('auth')->group(function () {
+        .portal-brand strong {
+            display: block;
+            font-size: 19px;
+        }
 
-// SOLICITAÇÕES DE PAGAMENTO DO PORTAL
-Route::prefix('admin/solicitacoes-pagamento')
-    ->name('admin.solicitacoes-pagamento.')
-    ->controller(SolicitacaoPagamentoAdminController::class)
-    ->group(function () {
-        Route::get('/', 'index')->name('index');
-        Route::get('/{id}', 'show')->name('show');
-        Route::get('/{id}/comprovante', 'comprovante')->name('comprovante');
-        Route::post('/{id}/aprovar', 'aprovar')->name('aprovar');
-        Route::post('/{id}/rejeitar', 'rejeitar')->name('rejeitar');
-    });
-Route::post('/clientes/{cliente}/portal/gerar', [ClientePortalController::class, 'gerar'])
-    ->name('clientes.portal.gerar');
+        .portal-brand small {
+            color: #9299a5;
+            font-size: 10px;
+            letter-spacing: 1.5px;
+        }
 
-Route::post('/clientes/{cliente}/portal/revogar', [ClientePortalController::class, 'revogar'])
-    ->name('clientes.portal.revogar');
-    // FLUXO DE CAIXA
-    Route::get('/fluxo-caixa', [FluxoCaixaController::class, 'index'])
-        ->name('fluxo-caixa.index');
+        .portal-container {
+            max-width: 1050px;
+            margin: 0 auto;
+            padding: 28px 15px 50px;
+        }
 
-    Route::post('/fluxo-caixa', [FluxoCaixaController::class, 'store'])
-        ->name('fluxo-caixa.store');
+        .welcome { margin-bottom: 25px; }
 
-    Route::delete('/fluxo-caixa/{id}', [FluxoCaixaController::class, 'destroy'])
-        ->name('fluxo-caixa.destroy');
+        .welcome h1 {
+            font-size: 25px;
+            font-weight: 700;
+            margin-bottom: 7px;
+        }
 
-    // DASHBOARD
-    Route::get('/dashboard', [DashboardController::class, 'index'])
-        ->name('dashboard');
+        .welcome p {
+            color: #999;
+            margin: 0;
+            font-size: 14px;
+        }
 
-    Route::get('/dashboard/dados', [DashboardController::class, 'dados'])
-        ->name('dashboard.dados');
+        .portal-card {
+            background: #1b1b1b;
+            border: 1px solid #333;
+            border-radius: 13px;
+            padding: 20px;
+            margin-bottom: 18px;
+        }
 
-    Route::get('/dashboard/cliente/{id}', [DashboardController::class, 'dadosCliente'])
-        ->name('dashboard.cliente');
+        .portal-card h2 {
+            font-size: 17px;
+            font-weight: 700;
+            margin-bottom: 17px;
+        }
 
-    Route::get('/dashboard/pdf', [DashboardController::class, 'exportarPdf'])
-        ->name('dashboard.pdf');
+        .contract-heading {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 22px 0 15px;
+        }
 
-    Route::post('/dashboard/pagar-parcela/{parcela}', [DashboardController::class, 'pagarParcela'])
-        ->name('dashboard.pagar-parcela');
+        .contract-heading h2 { margin: 0; }
 
-    // CALCULADORA
-    Route::get('/calculadora', [CalculadoraController::class, 'index'])
-        ->name('calculadora.index');
+        .contract-number {
+            color: #8e9aaa;
+            font-size: 13px;
+        }
 
-    // CLIENTES
-    Route::resource('clientes', ClienteController::class);
+        .contract-balance {
+            background: #172b2a;
+            border: 1px solid #24564e;
+            border-radius: 10px;
+            padding: 14px;
+            margin-bottom: 15px;
+        }
 
-    // DOCUMENTOS DOS CLIENTES
-    Route::post('/clientes/{clienteId}/documentos', [ClienteDocumentoController::class, 'store'])
-        ->name('clientes.documentos.store');
+        .contract-balance small {
+            color: #a8c8c1;
+            display: block;
+            margin-bottom: 4px;
+        }
 
-    Route::post('/clientes/{clienteId}/documentos/{id}/rename', [ClienteDocumentoController::class, 'rename'])
-        ->name('clientes.documentos.rename');
+        .contract-balance strong {
+            color: #42d69b;
+            font-size: 21px;
+        }
 
-    Route::delete('/clientes/documentos/{documento}', [ClienteDocumentoController::class, 'destroy'])
-        ->name('clientes.documentos.destroy');
+        .installment {
+            background: #222;
+            border: 1px solid #383838;
+            border-radius: 11px;
+            padding: 16px;
+            margin-top: 12px;
+        }
 
-    // CONTRATOS
-    Route::resource('contratos', ContratoController::class);
+        .installment-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 13px;
+        }
 
-    Route::get('/contratos/{id}/gerar-pdf', [ContratoController::class, 'gerarPdf'])
-        ->name('contratos.gerarPdf');
+        .installment-title {
+            font-weight: 700;
+            font-size: 15px;
+        }
 
-    // PARCELAS
-    Route::post('/parcelas/{parcela}/pagar', [DashboardController::class, 'pagarParcela'])
-        ->name('parcelas.pagar');
+        .installment-values {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
 
-    Route::patch('/parcelas/{id}/pagar', [ParcelaController::class, 'marcarComoPaga'])
-        ->name('parcelas.marcarComoPaga');
+        .value-label {
+            color: #9299a5;
+            font-size: 11px;
+            margin-bottom: 5px;
+        }
 
-    Route::post('/parcelas/{id}/update', [ContratoController::class, 'updateParcela'])
-        ->name('parcelas.update');
+        .value-number {
+            color: #fff;
+            font-weight: 700;
+            font-size: 15px;
+            overflow-wrap: anywhere;
+        }
 
-    Route::get('/parcelas/vencimentos', [ParcelaController::class, 'vencimentos'])
-        ->name('parcelas.vencimentos');
+        .value-number.green { color: #42d69b; }
+        .value-number.yellow { color: #f5c451; }
 
-    Route::get('/parcelas/{id}/pdf', [ParcelaController::class, 'gerarBoletoPix'])
-        ->name('parcelas.gerarPdf');
+        .receipt-area {
+            border-top: 1px solid #393939;
+            margin-top: 15px;
+            padding-top: 15px;
+        }
 
-    Route::get('/parcelas/{id}/enviar-aviso', [ParcelaController::class, 'enviarAviso'])
-        ->name('parcelas.enviarAviso');
+        .receipt-area-title {
+            color: #aeb8c5;
+            font-size: 12px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
 
-    Route::get('/parcelas/{id}/enviar-aviso-pdf', [ParcelaController::class, 'enviarAvisoParcela'])
-        ->name('parcelas.enviarAvisoPdf');
+        .btn-receipt {
+            display: inline-block;
+            background: #172b2a;
+            color: #42d69b;
+            border: 1px solid #28765e;
+            border-radius: 7px;
+            padding: 9px 12px;
+            font-size: 12px;
+            font-weight: 700;
+            text-decoration: none;
+            margin: 0 6px 7px 0;
+        }
 
-    Route::get('/parcelas/{id}/whatsapp', [ParcelaController::class, 'enviarWhatsApp'])
-        ->name('parcelas.enviarWhatsApp');
+        .btn-receipt:hover {
+            background: #21483c;
+            color: #fff;
+        }
 
-    Route::post('/parcelas/{id}/status', [ParcelaController::class, 'updateStatus'])
-        ->name('parcelas.updateStatus');
+        .installment-form {
+            border-top: 1px solid #393939;
+            margin-top: 15px;
+            padding-top: 15px;
+        }
 
-    Route::put('/parcelas/{id}/status', [ParcelaController::class, 'updateStatus'])
-        ->name('parcelas.updateStatus.put');
+        .installment-form h3 {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 13px;
+        }
 
-    // PAGAMENTOS
-    Route::post('/parcelas/{parcela}/pagamentos', [PagamentoController::class, 'store'])
-        ->name('parcelas.pagamentos.store');
+        .form-label {
+            color: #c9cdd4;
+            font-size: 12px;
+        }
 
-    Route::put('/pagamentos/{pagamento}', [PagamentoController::class, 'update'])
-        ->name('pagamentos.update');
+        .form-control {
+            background: #111;
+            color: #fff;
+            border: 1px solid #444;
+            border-radius: 8px;
+            padding: 10px;
+        }
 
-    Route::delete('/pagamentos/{pagamento}', [PagamentoController::class, 'destroy'])
-        ->name('pagamentos.destroy');
+        .form-control:focus {
+            background: #111;
+            color: #fff;
+            border-color: #1689d4;
+            box-shadow: 0 0 0 .2rem rgba(22,137,212,.15);
+        }
 
-    // RECIBO PDF
-    Route::get('/pagamentos/{pagamento}/recibo', [PagamentoController::class, 'recibo'])
-        ->name('pagamentos.recibo');
+        .form-control::file-selector-button {
+            background: #303030;
+            color: #fff;
+        }
 
-    // COMPROVANTES
-    Route::get('/pagamentos/{pagamento}/comprovante', [PagamentoController::class, 'comprovante'])
-        ->name('pagamentos.comprovante');
+        .btn-send {
+            width: 100%;
+            background: #0879bd;
+            color: #fff;
+            border: 0;
+            border-radius: 8px;
+            padding: 12px;
+            font-weight: 700;
+        }
 
-    Route::get('/pagamentos/{pagamento}/comprovante/baixar', [PagamentoController::class, 'baixarComprovante'])
-        ->name('pagamentos.comprovante.baixar');
+        .btn-send:hover {
+            background: #09669c;
+            color: #fff;
+        }
 
-    // PERFIL
-    Route::get('/profile', [ProfileController::class, 'edit'])
-        ->name('profile.edit');
+        .notice {
+            background: rgba(245,196,81,.08);
+            border: 1px solid rgba(245,196,81,.25);
+            color: #e8c979;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 12px;
+            margin-top: 12px;
+        }
 
-    Route::patch('/profile', [ProfileController::class, 'update'])
-        ->name('profile.update');
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 35px 15px;
+        }
 
-    Route::delete('/profile', [ProfileController::class, 'destroy'])
-        ->name('profile.destroy');
+        .empty-state i {
+            font-size: 35px;
+            color: #555;
+            margin-bottom: 12px;
+        }
 
-    // CONFIGURAÇÕES
-    Route::get('/configuracoes', [ConfiguracoesController::class, 'index'])
-        ->name('configuracoes.index');
+        .portal-footer {
+            border-top: 1px solid #303030;
+            padding: 20px 15px;
+            text-align: center;
+            color: #777;
+            font-size: 12px;
+        }
 
-    Route::post('/configuracoes/salvar', [ConfiguracoesController::class, 'salvar'])
-        ->name('configuracoes.salvar');
+        @media(max-width: 600px) {
+            .portal-container { padding-top: 22px; }
+            .welcome h1 { font-size: 21px; }
+            .portal-card { padding: 15px; }
+            .installment-values { grid-template-columns: repeat(2, 1fr); }
+            .installment-top { align-items: flex-start; }
 
-        Route::get('/auditoria', [AuditoriaController::class, 'index'])
-    ->name('auditoria.index');
+            .btn-receipt {
+                display: block;
+                width: 100%;
+                text-align: center;
+                margin-right: 0;
+            }
+        }
+    </style>
+</head>
 
+<body>
 
-});
+<header class="portal-header">
+    <div class="container">
+        <div class="portal-brand">
+            <div class="portal-brand-icon">
+                <i class="fas fa-bolt"></i>
+            </div>
 
-require __DIR__ . '/auth.php';
+            <div>
+                <strong>m1r4ge7</strong>
+                <small>PORTAL DO CLIENTE</small>
+            </div>
+        </div>
+    </div>
+</header>
+
+<main class="portal-container">
+
+    <section class="welcome">
+        <h1>Olá, {{ $cliente->nome }}!</h1>
+        <p>
+            Consulte seus contratos, acompanhe suas parcelas e envie comprovantes de pagamento.
+        </p>
+    </section>
+
+    @if(session('success'))
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle me-2"></i>
+            {{ session('success') }}
+        </div>
+    @endif
+
+    @if(session('error'))
+        <div class="alert alert-danger">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            {{ session('error') }}
+        </div>
+    @endif
+
+    @if($errors->any())
+        <div class="alert alert-danger">
+            <strong>Verifique os dados informados:</strong>
+
+            @foreach($errors->all() as $erro)
+                <div>{{ $erro }}</div>
+            @endforeach
+        </div>
+    @endif
+
+    <div class="portal-card">
+        <h2>
+            <i class="fas fa-user-circle me-2"></i>
+            Seus dados
+        </h2>
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="value-label">Nome</div>
+                <div class="value-number">{{ $cliente->nome }}</div>
+            </div>
+
+            @if($cliente->telefone)
+                <div class="col-md-6">
+                    <div class="value-label">Telefone</div>
+                    <div class="value-number">{{ $cliente->telefone }}</div>
+                </div>
+            @endif
+        </div>
+    </div>
+
+    <div class="portal-card">
+        <h2>
+            <i class="fas fa-file-contract me-2"></i>
+            Seus contratos e parcelas
+        </h2>
+
+        @forelse($cliente->contratos as $contrato)
+
+            @php
+                $saldoContrato = 0;
+                $primeiraParcelaAbertaId = null;
+
+                foreach ($contrato->parcelas as $item) {
+                    $pagoItem = (float) $item->pagamentos->sum('valor');
+                    $saldoItem = max(0, (float) $item->valor - $pagoItem);
+
+                    $saldoContrato += $saldoItem;
+
+                    if ($saldoItem > 0.009 && $primeiraParcelaAbertaId === null) {
+                        $primeiraParcelaAbertaId = $item->id;
+                    }
+                }
+
+                $saldoContrato = round($saldoContrato, 2);
+            @endphp
+
+            <div class="contract-heading">
+                <div>
+                    <h2>Contrato #{{ $contrato->numero ?? $contrato->id }}</h2>
+                    <div class="contract-number">
+                        {{ $contrato->created_at?->format('d/m/Y') ?? '' }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="contract-balance">
+                <small>Saldo total restante do contrato</small>
+                <strong>
+                    R$ {{ number_format($saldoContrato, 2, ',', '.') }}
+                </strong>
+            </div>
+
+            @forelse($contrato->parcelas as $parcela)
+
+                @php
+                    $totalPago = (float) $parcela->pagamentos->sum('valor');
+                    $valorParcela = (float) $parcela->valor;
+                    $saldo = max(0, $valorParcela - $totalPago);
+                    $quitada = $saldo <= 0.009;
+
+                    $valorVencimento = $parcela->data_vencimento
+                        ? \Carbon\Carbon::parse($parcela->data_vencimento)->format('d/m/Y')
+                        : '-';
+                @endphp
+
+                <div class="installment">
+
+                    <div class="installment-top">
+                        <div class="installment-title">
+                            Parcela {{ $parcela->numero }}
+                        </div>
+
+                        @if($quitada)
+                            <span class="badge bg-success">
+                                <i class="fas fa-check me-1"></i>
+                                Paga
+                            </span>
+                        @else
+                            <span class="badge bg-warning text-dark">
+                                Em aberto
+                            </span>
+                        @endif
+                    </div>
+
+                    <div class="installment-values">
+                        <div>
+                            <div class="value-label">Valor da parcela</div>
+                            <div class="value-number">
+                                R$ {{ number_format($valorParcela, 2, ',', '.') }}
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="value-label">Total recebido</div>
+                            <div class="value-number green">
+                                R$ {{ number_format($totalPago, 2, ',', '.') }}
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="value-label">Saldo restante</div>
+                            <div class="value-number yellow">
+                                R$ {{ number_format($saldo, 2, ',', '.') }}
+                            </div>
+                        </div>
+
+                        <div>
+                            <div class="value-label">Vencimento</div>
+                            <div class="value-number">
+                                {{ $valorVencimento }}
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- RECIBOS DOS PAGAMENTOS APROVADOS --}}
+                    @if($parcela->pagamentos->isNotEmpty())
+                        <div class="receipt-area">
+                            <div class="receipt-area-title">
+                                <i class="fas fa-file-pdf me-1"></i>
+                                Recibos dos pagamentos
+                            </div>
+
+                            @foreach($parcela->pagamentos as $pagamento)
+                                <a
+                                    href="{{ route('portal.cliente.recibo', [
+                                        'token' => $cliente->portal_token,
+                                        'pagamento' => $pagamento->id
+                                    ]) }}"
+                                    class="btn-receipt"
+                                >
+                                    <i class="fas fa-download me-1"></i>
+                                    Baixar recibo — R$
+                                    {{ number_format($pagamento->valor, 2, ',', '.') }}
+                                    @if($pagamento->data_pagamento)
+                                        — {{ \Carbon\Carbon::parse($pagamento->data_pagamento)->format('d/m/Y') }}
+                                    @endif
+                                </a>
+                            @endforeach
+                        </div>
+                    @endif
+
+                    @if(
+                        !$quitada
+                        && $parcela->id === $primeiraParcelaAbertaId
+                    )
+
+                        <div class="installment-form">
+                            <h3>
+                                <i class="fas fa-cloud-upload-alt me-2"></i>
+                                Informar pagamento
+                            </h3>
+
+                            <div class="notice mb-3">
+                                Você pode informar um pagamento parcial ou antecipar
+                                várias parcelas. O valor será distribuído entre as
+                                parcelas em aberto, começando pela mais antiga.
+                            </div>
+
+                            <form
+                                method="POST"
+                                action="{{ route('portal.cliente.solicitacoes.store', $cliente->portal_token) }}"
+                                enctype="multipart/form-data"
+                            >
+                                @csrf
+
+                                <input
+                                    type="hidden"
+                                    name="parcela_id"
+                                    value="{{ $parcela->id }}"
+                                >
+
+                                <div class="row g-3">
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">
+                                            Valor pago (R$)
+                                        </label>
+
+                                        <input
+                                            type="number"
+                                            name="valor"
+                                            class="form-control"
+                                            min="0.01"
+                                            max="{{ number_format($saldoContrato, 2, '.', '') }}"
+                                            step="0.01"
+                                            value="{{ old('parcela_id') == $parcela->id ? old('valor') : '' }}"
+                                            placeholder="0,00"
+                                            required
+                                        >
+
+                                        <small class="text-secondary">
+                                            Saldo máximo do contrato: R$
+                                            {{ number_format($saldoContrato, 2, ',', '.') }}
+                                        </small>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label class="form-label">
+                                            Data do pagamento
+                                        </label>
+
+                                        <input
+                                            type="date"
+                                            name="data_pagamento"
+                                            class="form-control"
+                                            value="{{ old('parcela_id') == $parcela->id ? old('data_pagamento') : date('Y-m-d') }}"
+                                            required
+                                        >
+                                    </div>
+
+                                    <div class="col-12">
+                                        <label class="form-label">Comprovante</label>
+
+                                        <input
+                                            type="file"
+                                            name="comprovante"
+                                            class="form-control"
+                                            accept=".pdf,.jpg,.jpeg,.png"
+                                            required
+                                        >
+
+                                        <small class="text-secondary">
+                                            PDF, JPG ou PNG. Tamanho máximo: 5 MB.
+                                        </small>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <label class="form-label">
+                                            Observação (opcional)
+                                        </label>
+
+                                        <textarea
+                                            name="observacao"
+                                            class="form-control"
+                                            rows="2"
+                                            maxlength="1000"
+                                            placeholder="Informações adicionais sobre o pagamento..."
+                                        >{{ old('parcela_id') == $parcela->id ? old('observacao') : '' }}</textarea>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <button type="submit" class="btn-send">
+                                            <i class="fas fa-paper-plane me-2"></i>
+                                            Enviar comprovante
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+
+                            <div class="notice">
+                                <i class="fas fa-info-circle me-1"></i>
+                                O envio não confirma automaticamente o pagamento.
+                                O registro será feito após a conferência e aprovação
+                                pela administração.
+                            </div>
+                        </div>
+
+                    @endif
+
+                </div>
+
+            @empty
+                <div class="empty-state">
+                    Nenhuma parcela cadastrada neste contrato.
+                </div>
+            @endforelse
+
+        @empty
+            <div class="empty-state">
+                <i class="fas fa-folder-open d-block"></i>
+                <strong>Nenhum contrato encontrado.</strong>
+                <p class="mb-0 mt-2">
+                    Entre em contato com a administração para obter informações.
+                </p>
+            </div>
+        @endforelse
+    </div>
+
+</main>
+
+<footer class="portal-footer">
+    m1r4ge7 — Portal do Cliente
+    <br>
+    Acesso privado e individual.
+</footer>
+
+</body>
+</html>
