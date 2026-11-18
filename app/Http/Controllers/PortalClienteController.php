@@ -100,4 +100,35 @@ class PortalClienteController extends Controller
             'Comprovante enviado! Aguarde a confirmação do pagamento.'
         );
     }
+
+    public function recibo(string $token, int $pagamentoId)
+    {
+        $cliente = Cliente::where('portal_token', $token)
+            ->where('portal_ativo', true)
+            ->firstOrFail();
+
+        $pagamento = \App\Models\Pagamento::with([
+            'parcela.contrato.cliente',
+            'parcela.pagamentos',
+        ])
+        ->whereKey($pagamentoId)
+        ->whereHas('parcela.contrato', function ($query) use ($cliente) {
+            $query->where('cliente_id', $cliente->id);
+        })
+        ->firstOrFail();
+
+        $parcela = $pagamento->parcela;
+        $contrato = $parcela->contrato;
+        $totalRecebido = (float) $parcela->pagamentos->sum('valor');
+        $saldoRestante = max(0, (float) $parcela->valor - $totalRecebido);
+
+        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView(
+            'pagamentos.recibo',
+            compact('pagamento', 'parcela', 'contrato', 'cliente',
+                'totalRecebido', 'saldoRestante')
+        );
+
+        return $pdf->download("recibo_pagamento_{$pagamento->id}.pdf");
+    }
+
 }
