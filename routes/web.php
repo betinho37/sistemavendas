@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuditoriaController;
 use App\Http\Controllers\ClientePortalController;
 use App\Http\Controllers\SolicitacaoPagamentoAdminController;
-
+use App\Http\Controllers\UsuarioAdminController;
 
 
 
@@ -38,6 +38,19 @@ Route::post('/portal/{token}/solicitacoes', [\App\Http\Controllers\PortalCliente
     ->name('portal.cliente.solicitacoes.store');
 
 Route::middleware('auth')->group(function () {
+// ADMINISTRAÇÃO DE USUÁRIOS
+Route::get('/admin/usuarios', [UsuarioAdminController::class, 'index'])
+    ->name('admin.usuarios.index');
+
+
+Route::post('/admin/usuarios', [UsuarioAdminController::class, 'store'])
+    ->name('admin.usuarios.store');
+
+Route::put('/admin/usuarios/{usuario}', [UsuarioAdminController::class, 'update'])
+    ->name('admin.usuarios.update');
+
+Route::delete('/admin/usuarios/{usuario}', [UsuarioAdminController::class, 'destroy'])
+    ->name('admin.usuarios.destroy');
 
 // SOLICITAÇÕES DE PAGAMENTO DO PORTAL
 Route::prefix('admin/solicitacoes-pagamento')
