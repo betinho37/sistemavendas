@@ -1,0 +1,154 @@
+[1mdiff --git a/app/Http/Controllers/PagamentoController.php b/app/Http/Controllers/PagamentoController.php[m
+[1mindex eb3e12a..deac46a 100644[m
+[1m--- a/app/Http/Controllers/PagamentoController.php[m
+[1m+++ b/app/Http/Controllers/PagamentoController.php[m
+[36m@@ -16,6 +16,8 @@[m [mclass PagamentoController extends Controller[m
+     {[m
+         $user = Auth::user();[m
+ [m
+[32m+[m[32m        abort_unless($user, 403);[m
+[32m+[m
+         if (!$user->isAdmin()) {[m
+             $permitida = $parcela->contrato()[m
+                 ->whereHas('cliente', function ($query) use ($user) {[m
+[36m@@ -30,9 +32,22 @@[m [mclass PagamentoController extends Controller[m
+     private function verificarAcessoPagamento(Pagamento $pagamento): void[m
+     {[m
+         $pagamento->loadMissing('parcela.contrato.cliente');[m
+[32m+[m
+         $this->verificarAcesso($pagamento->parcela);[m
+     }[m
+ [m
+[32m+[m[32m    private function verificarPagamentoManual(Pagamento $pagamento): void[m
+[32m+[m[32m    {[m
+[32m+[m[32m        $observacao = trim((string) $pagamento->observacao);[m
+[32m+[m
+[32m+[m[32m        if (str_contains($observacao, 'Pagamento via Portal - Solicitação #')) {[m
+[32m+[m[32m            abort([m
+[32m+[m[32m                403,[m
+[32m+[m[32m                'Este recebimento foi aprovado pelo Portal do Cliente e não pode ser editado ou excluído individualmente.'[m
+[32m+[m[32m            );[m
+[32m+[m[32m        }[m
+[32m+[m[32m    }[m
+[32m+[m
+     private function atualizarStatus(Parcela $parcela): void[m
+     {[m
+         $totalPago = round((float) $parcela->pagamentos()->sum('valor'), 2);[m
+[36m@@ -43,6 +58,19 @@[m [mclass PagamentoController extends Controller[m
+         ]);[m
+     }[m
+ [m
+[32m+[m[32m    private function excluirComprovanteSeNaoUtilizado(?string $arquivo): void[m
+[32m+[m[32m    {[m
+[32m+[m[32m        if (!$arquivo) {[m
+[32m+[m[32m            return;[m
+[32m+[m[32m        }[m
+[32m+[m
+[32m+[m[32m        if (Pagamento::where('comprovante', $arquivo)->exists()) {[m
+[32m+[m[32m            return;[m
+[32m+[m[32m        }[m
+[32m+[m
+[32m+[m[32m        Storage::disk('local')->delete($arquivo);[m
+[32m+[m[32m    }[m
+[32m+[m
+     public function store(Request $request, Parcela $parcela)[m
+     {[m
+         $dados = $request->validate([[m
+[36m@@ -78,7 +106,9 @@[m [mclass PagamentoController extends Controller[m
+                 $caminho = $arquivo->store('comprovantes', 'local');[m
+ [m
+                 if (!$caminho) {[m
+[31m-                    throw new \RuntimeException('Não foi possível salvar o comprovante.');[m
+[32m+[m[32m                    throw new \RuntimeException([m
+[32m+[m[32m                        'Não foi possível salvar o comprovante.'[m
+[32m+[m[32m                    );[m
+                 }[m
+ [m
+                 $pagamento->comprovante = $caminho;[m
+[36m@@ -122,20 +152,22 @@[m [mclass PagamentoController extends Controller[m
+                 ->lockForUpdate()[m
+                 ->firstOrFail();[m
+ [m
+[32m+[m[32m            $this->verificarPagamentoManual($pagamento);[m
+[32m+[m
+             $novoValor = round((float) $dados['valor'], 2);[m
+ [m
+             $pagamento->valor = $novoValor;[m
+             $pagamento->data_pagamento = $dados['data_pagamento'];[m
+ [m
+[32m+[m[32m            $comprovanteAntigo = $pagamento->comprovante;[m
+[32m+[m
+             if ($arquivo) {[m
+                 $novoComprovante = $arquivo->store('comprovantes', 'local');[m
+ [m
+                 if (!$novoComprovante) {[m
+[31m-                    throw new \RuntimeException('Não foi possível salvar o comprovante.');[m
+[31m-                }[m
+[31m-[m
+[31m-                if ($pagamento->comprovante) {[m
+[31m-                    Storage::disk('local')->delete($pagamento->comprovante);[m
+[32m+[m[32m                    throw new \RuntimeException([m
+[32m+[m[32m                        'Não foi possível salvar o comprovante.'[m
+[32m+[m[32m                    );[m
+                 }[m
+ [m
+                 $pagamento->comprovante = $novoComprovante;[m
+[36m@@ -145,7 +177,16 @@[m [mclass PagamentoController extends Controller[m
+ [m
+             $this->atualizarStatus($parcela);[m
+ [m
+[31m-            return back()->with('success', 'Recebimento atualizado com sucesso!');[m
+[32m+[m[32m            if ($arquivo && $comprovanteAntigo) {[m
+[32m+[m[32m                DB::afterCommit(function () use ($comprovanteAntigo) {[m
+[32m+[m[32m                    $this->excluirComprovanteSeNaoUtilizado($comprovanteAntigo);[m
+[32m+[m[32m                });[m
+[32m+[m[32m            }[m
+[32m+[m
+[32m+[m[32m            return back()->with([m
+[32m+[m[32m                'success',[m
+[32m+[m[32m                'Recebimento atualizado com sucesso!'[m
+[32m+[m[32m            );[m
+         });[m
+     }[m
+ [m
+[36m@@ -217,15 +258,24 @@[m [mclass PagamentoController extends Controller[m
+                 ->lockForUpdate()[m
+                 ->firstOrFail();[m
+ [m
+[31m-            if ($pagamento->comprovante) {[m
+[31m-                Storage::disk('local')->delete($pagamento->comprovante);[m
+[31m-            }[m
+[32m+[m[32m            $this->verificarPagamentoManual($pagamento);[m
+[32m+[m
+[32m+[m[32m            $comprovante = $pagamento->comprovante;[m
+ [m
+             $pagamento->delete();[m
+ [m
+             $this->atualizarStatus($parcela);[m
+ [m
+[31m-            return back()->with('success', 'Recebimento excluído com sucesso!');[m
+[32m+[m[32m            if ($comprovante) {[m
+[32m+[m[32m                DB::afterCommit(function () use ($comprovante) {[m
+[32m+[m[32m                    $this->excluirComprovanteSeNaoUtilizado($comprovante);[m
+[32m+[m[32m                });[m
+[32m+[m[32m            }[m
+[32m+[m
+[32m+[m[32m            return back()->with([m
+[32m+[m[32m                'success',[m
+[32m+[m[32m                'Recebimento excluído com sucesso!'[m
+[32m+[m[32m            );[m
+         });[m
+     }[m
+ [m
+[36m@@ -243,7 +293,10 @@[m [mclass PagamentoController extends Controller[m
+         $cliente = $contrato->cliente;[m
+ [m
+         $totalRecebido = (float) $parcela->pagamentos->sum('valor');[m
+[31m-        $saldoRestante = max(0, (float) $parcela->valor - $totalRecebido);[m
+[32m+[m[32m        $saldoRestante = max([m
+[32m+[m[32m            0,[m
+[32m+[m[32m            (float) $parcela->valor - $totalRecebido[m
+[32m+[m[32m        );[m
+ [m
+         $pdf = Pdf::loadView('pagamentos.recibo', compact([m
+             'pagamento',[m

@@ -1,4 +1,3 @@
-
 @extends('layouts.app')
 
 @section('title', 'Contratos')
@@ -17,7 +16,7 @@
         align-items: center;
         gap: 12px;
         flex-wrap: wrap;
-        margin-bottom: 20px;
+        margin-bottom: 18px;
     }
 
     .contratos-header h2 {
@@ -26,7 +25,41 @@
         font-weight: 700;
     }
 
-    /* TABELA DESKTOP */
+    .contratos-filtros {
+        background: #151b26;
+        border: 1px solid #293344;
+        border-radius: 12px;
+        padding: 15px;
+        margin-bottom: 18px;
+    }
+
+    .contratos-filtros label {
+        color: #aeb9c9;
+        font-size: .8rem;
+        margin-bottom: 5px;
+    }
+
+    .contratos-filtros .form-control,
+    .contratos-filtros .form-select {
+        background-color: #202a39;
+        border: 1px solid #39465a;
+        color: #fff;
+        min-height: 42px;
+    }
+
+    .contratos-filtros .form-control:focus,
+    .contratos-filtros .form-select:focus {
+        background-color: #202a39;
+        color: #fff;
+        border-color: #3995ff;
+        box-shadow: none;
+    }
+
+    .contratos-filtros option {
+        background: #202a39;
+        color: #fff;
+    }
+
     .contratos-desktop {
         width: 100%;
         overflow-x: auto;
@@ -50,7 +83,6 @@
         gap: 6px;
     }
 
-    /* MOBILE */
     .contratos-mobile {
         display: none;
     }
@@ -149,7 +181,38 @@
         color: #8995a5;
     }
 
-    /* TABLETS E CELULARES */
+    .contratos-paginacao {
+        margin-top: 18px;
+    }
+
+    .contratos-paginacao nav {
+        display: flex;
+        justify-content: center;
+    }
+
+    .contratos-paginacao .pagination {
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    .contratos-paginacao .page-link {
+        background: #202a39;
+        border-color: #39465a;
+        color: #e8edf5;
+    }
+
+    .contratos-paginacao .active .page-link {
+        background: #0d6efd;
+        border-color: #0d6efd;
+        color: #fff;
+    }
+
+    .contratos-resultado {
+        color: #8995a5;
+        font-size: .82rem;
+        margin-top: 10px;
+    }
+
     @media (max-width: 767px) {
         .contratos-page {
             padding-left: 0;
@@ -181,9 +244,13 @@
         .contratos-mobile {
             display: block;
         }
+
+        .contratos-filtros .btn {
+            width: 100%;
+            min-height: 42px;
+        }
     }
 
-    /* CELULARES PEQUENOS */
     @media (max-width: 380px) {
         .contrato-card {
             padding: 12px;
@@ -218,9 +285,100 @@
         </a>
     </div>
 
+    {{-- PESQUISA E FILTROS --}}
+    <div class="contratos-filtros">
+        <form method="GET" action="{{ route('contratos.index') }}">
+
+            <div class="row g-3">
+
+                <div class="col-12 col-md-4">
+                    <label for="busca">Pesquisar contrato ou cliente</label>
+                    <input
+                        type="text"
+                        name="busca"
+                        id="busca"
+                        class="form-control"
+                        value="{{ request('busca') }}"
+                        placeholder="Nome do cliente ou número do contrato"
+                    >
+                </div>
+
+                <div class="col-6 col-md-3">
+                    <label for="ordenar">Ordenar por</label>
+                    <select name="ordenar" id="ordenar" class="form-select">
+                        <option value="data" @selected(request('ordenar', 'data') == 'data')>
+                            Data do contrato
+                        </option>
+                        <option value="cliente" @selected(request('ordenar') == 'cliente')>
+                            Nome do cliente
+                        </option>
+                        <option value="valor" @selected(request('ordenar') == 'valor')>
+                            Valor emprestado
+                        </option>
+                        <option value="total" @selected(request('ordenar') == 'total')>
+                            Total a receber
+                        </option>
+                        <option value="lucro" @selected(request('ordenar') == 'lucro')>
+                            Lucro
+                        </option>
+                        <option value="parcelas" @selected(request('ordenar') == 'parcelas')>
+                            Quantidade de parcelas
+                        </option>
+                        <option value="vencimento" @selected(request('ordenar') == 'vencimento')>
+                            Próximo vencimento
+                        </option>
+                    </select>
+                </div>
+
+                <div class="col-6 col-md-2">
+                    <label for="direcao">Ordem</label>
+                    <select name="direcao" id="direcao" class="form-select">
+                        <option value="desc" @selected(request('direcao', 'desc') == 'desc')>
+                            Decrescente
+                        </option>
+                        <option value="asc" @selected(request('direcao') == 'asc')>
+                            Crescente
+                        </option>
+                    </select>
+                </div>
+
+                <div class="col-12 col-md-3">
+                    <label for="situacao">Situação</label>
+                    <select name="situacao" id="situacao" class="form-select">
+                        <option value="">Todas as situações</option>
+                        <option value="em_andamento" @selected(request('situacao') == 'em_andamento')>
+                            Em andamento
+                        </option>
+                        <option value="quitado" @selected(request('situacao') == 'quitado')>
+                            Quitados
+                        </option>
+                        <option value="atrasado" @selected(request('situacao') == 'atrasado')>
+                            Com parcelas atrasadas
+                        </option>
+                        <option value="a_vencer" @selected(request('situacao') == 'a_vencer')>
+                            Com parcelas a vencer
+                        </option>
+                    </select>
+                </div>
+
+<div class="col-12">
+    <a href="{{ route('contratos.index') }}" class="btn btn-outline-light">
+        Limpar filtros
+    </a>
+</div>
+
+            </div>
+        </form>
+
+        <div class="contratos-resultado">
+            {{ $contratos->total() }} contrato(s) encontrado(s).
+        </div>
+    </div>
+
     {{-- DESKTOP --}}
     <div class="contratos-desktop">
         <table class="table table-dark table-bordered text-white align-middle">
+
             <thead class="text-center">
                 <tr>
                     <th>Cliente</th>
@@ -242,7 +400,7 @@
                         <td>{{ $contrato->cliente->nome ?? 'Não informado' }}</td>
 
                         <td class="text-center">
-                            {{ \Carbon\Carbon::parse($contrato->data_inicio)->format('d/m/Y') }}
+                            {{ $contrato->data_inicio ? \Carbon\Carbon::parse($contrato->data_inicio)->format('d/m/Y') : '-' }}
                         </td>
 
                         <td class="text-end">
@@ -292,11 +450,12 @@
                 @empty
                     <tr>
                         <td colspan="10" class="text-center text-warning py-4">
-                            Nenhum contrato cadastrado.
+                            Nenhum contrato encontrado com esses filtros.
                         </td>
                     </tr>
                 @endforelse
             </tbody>
+
         </table>
     </div>
 
@@ -308,6 +467,9 @@
 
                 <div class="cliente">
                     {{ $contrato->cliente->nome ?? 'Não informado' }}
+                    <small class="d-block text-secondary mt-1">
+                        Contrato #{{ $contrato->id }}
+                    </small>
                 </div>
 
                 <div class="contrato-info">
@@ -315,7 +477,7 @@
                     <div class="item">
                         <span class="label">Data inicial</span>
                         <span class="valor">
-                            {{ \Carbon\Carbon::parse($contrato->data_inicio)->format('d/m/Y') }}
+                            {{ $contrato->data_inicio ? \Carbon\Carbon::parse($contrato->data_inicio)->format('d/m/Y') : '-' }}
                         </span>
                     </div>
 
@@ -390,18 +552,57 @@
                     </form>
 
                 </div>
+
             </div>
         @empty
             <div class="contratos-vazio">
-                Nenhum contrato cadastrado.
+                Nenhum contrato encontrado com esses filtros.
             </div>
         @endforelse
 
     </div>
 
+    {{-- PAGINAÇÃO --}}
+    @if($contratos->hasPages())
+        <div class="contratos-paginacao">
+            {{ $contratos->links() }}
+        </div>
+    @endif
+
     <small class="contratos-rodape">
-        📌 Cálculo das parcelas baseado no sistema PRICE (juros compostos).
+        📌 Cálculo das parcelas baseado em juros simples sobre o capital original.
     </small>
 
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.querySelector('.contratos-filtros form');
+
+    if (!form) return;
+
+    const busca = form.querySelector('[name="busca"]');
+    const filtros = form.querySelectorAll(
+        'select[name="ordenar"], select[name="direcao"], select[name="situacao"]'
+    );
+
+    let temporizador;
+
+    function enviarFormulario() {
+        form.requestSubmit();
+    }
+
+    filtros.forEach(function (filtro) {
+        filtro.addEventListener('change', enviarFormulario);
+    });
+
+    busca.addEventListener('input', function () {
+        clearTimeout(temporizador);
+
+        temporizador = setTimeout(function () {
+            enviarFormulario();
+        }, 400);
+    });
+});
+</script>
 @endsection

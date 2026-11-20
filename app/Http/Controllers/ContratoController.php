@@ -14,9 +14,136 @@ use Barryvdh\DomPDF\Facade\Pdf;
 
 class ContratoController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $contratos = Contrato::with('cliente')->get();
+        $usuario = Auth::user();
+
+        $query = Contrato::query()
+            ->with('cliente');
+
+        // Usuário comum visualiza somente seus próprios contratos.
+        // Administrador visualiza todos.
+        if (!$usuario->isAdmin()) {
+            $query->whereHas('cliente', function ($q) use ($usuario) {
+                $q->where('user_id', $usuario->id);
+            });
+        }
+
+        // Pesquisa por nome do cliente ou número do contrato.
+        if ($request->filled('busca')) {
+            $busca = trim($request->busca);
+
+            $query->where(function ($q) use ($busca) {
+                if (ctype_digit($busca)) {
+                    $q->orWhere('contratos.id', (int) $busca);
+                }
+
+                $q->orWhereHas('cliente', function ($cliente) use ($busca) {
+                    $cliente->where('nome', 'like', '%' . $busca . '%');
+                });
+            });
+        }
+
+        // Filtros por situação das parcelas.
+        $situacao = $request->input('situacao');
+
+        if ($situacao === 'em_andamento') {
+            $query->whereHas('parcelas', function ($q) {
+                $q->where('status', false);
+            });
+        }
+
+        if ($situacao === 'quitado') {
+            $query->whereHas('parcelas')
+                ->whereDoesntHave('parcelas', function ($q) {
+                    $q->where('status', false);
+                });
+        }
+
+        if ($situacao === 'atrasado') {
+            $query->whereHas('parcelas', function ($q) {
+                $q->where('status', false)
+                    ->whereDate('data_vencimento', '<', today());
+            });
+        }
+
+        if ($situacao === 'a_vencer') {
+            $query->whereHas('parcelas', function ($q) {
+                $q->where('status', false)
+                    ->whereDate('data_vencimento', '>=', today());
+            });
+        }
+
+        // Campos permitidos para ordenação.
+        $ordenar = $request->input('ordenar', 'data');
+
+        $camposPermitidos = [
+            'data',
+            'cliente',
+            'valor',
+            'total',
+            'lucro',
+            'parcelas',
+            'vencimento',
+        ];
+
+        if (!in_array($ordenar, $camposPermitidos, true)) {
+            $ordenar = 'data';
+        }
+
+        $direcao = $request->input('direcao', 'desc');
+
+        if (!in_array($direcao, ['asc', 'desc'], true)) {
+            $direcao = 'desc';
+        }
+
+        switch ($ordenar) {
+            case 'cliente':
+                $query->orderBy(
+                    Cliente::select('nome')
+                        ->whereColumn('clientes.id', 'contratos.cliente_id'),
+                    $direcao
+                );
+                break;
+
+            case 'valor':
+                $query->orderBy('contratos.valor', $direcao);
+                break;
+
+            case 'total':
+                $query->orderBy('contratos.total_receber', $direcao);
+                break;
+
+            case 'lucro':
+                $query->orderBy('contratos.lucro', $direcao);
+                break;
+
+            case 'parcelas':
+                $query->orderBy('contratos.qtd_parcelas', $direcao);
+                break;
+
+            case 'vencimento':
+                $query->orderBy(
+                    Parcela::select('data_vencimento')
+                        ->whereColumn('parcelas.contrato_id', 'contratos.id')
+                        ->where('parcelas.status', false)
+                        ->orderBy('parcelas.data_vencimento', 'asc')
+                        ->limit(1),
+                    $direcao
+                );
+                break;
+
+            case 'data':
+            default:
+                $query->orderBy('contratos.data_inicio', $direcao);
+                break;
+        }
+
+        $query->orderBy('contratos.id', 'desc');
+
+        $contratos = $query
+            ->paginate(15)
+            ->withQueryString();
 
         return view('contratos.index', compact('contratos'));
     }
@@ -119,11 +246,29 @@ class ContratoController extends Controller
             'parcelas.pagamentos.user'
         ])->findOrFail($id);
 
+        $usuario = Auth::user();
+
+        if (!$usuario->isAdmin()) {
+            abort_unless(
+                $contrato->cliente->user_id == $usuario->id,
+                403
+            );
+        }
+
         return view('contratos.show', compact('contrato'));
     }
 
     public function edit(Contrato $contrato)
     {
+        $usuario = Auth::user();
+
+        if (!$usuario->isAdmin()) {
+            abort_unless(
+                $contrato->cliente->user_id == $usuario->id,
+                403
+            );
+        }
+
         $clientes = Cliente::all();
 
         return view('contratos.edit', compact('contrato', 'clientes'));
@@ -131,6 +276,15 @@ class ContratoController extends Controller
 
     public function update(Request $request, Contrato $contrato)
     {
+        $usuario = Auth::user();
+
+        if (!$usuario->isAdmin()) {
+            abort_unless(
+                $contrato->cliente->user_id == $usuario->id,
+                403
+            );
+        }
+
         if (
             $contrato->parcelas()->whereHas('pagamentos')->exists()
             || $contrato->parcelas()->where('status', true)->exists()
@@ -292,7 +446,6 @@ class ContratoController extends Controller
             $amortizacaoCentavos = $principalBase;
             $jurosCentavos = $jurosBase;
 
-            // Ajusta os centavos restantes na última parcela.
             if ($i === $quantidade) {
                 $amortizacaoCentavos += $principalResto;
                 $jurosCentavos += $jurosResto;
@@ -338,6 +491,15 @@ class ContratoController extends Controller
 
     public function destroy(Contrato $contrato)
     {
+        $usuario = Auth::user();
+
+        if (!$usuario->isAdmin()) {
+            abort_unless(
+                $contrato->cliente->user_id == $usuario->id,
+                403
+            );
+        }
+
         $contrato->delete();
 
         return redirect()->route('contratos.index');
@@ -346,6 +508,15 @@ class ContratoController extends Controller
     public function gerarPdf($id)
     {
         $contrato = Contrato::with('cliente', 'parcelas')->findOrFail($id);
+
+        $usuario = Auth::user();
+
+        if (!$usuario->isAdmin()) {
+            abort_unless(
+                $contrato->cliente->user_id == $usuario->id,
+                403
+            );
+        }
 
         $pdf = Pdf::loadView('contratos.pdf', compact('contrato'));
 

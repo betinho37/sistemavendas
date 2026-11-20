@@ -62,27 +62,34 @@
             </a>
         </li>
 
-@if(auth()->check() && auth()->user()->isAdmin())
-    @php
-        $solicitacoesPendentes = \App\Models\SolicitacaoPagamento::where('status', 'pendente')->count();
-    @endphp
-
-    <li class="nav-item">
-        <a class="nav-link {{ request()->routeIs('admin.solicitacoes-pagamento.*') ? 'active' : '' }}"
-           href="{{ route('admin.solicitacoes-pagamento.index') }}">
-            <i class="fas fa-file-invoice-dollar"></i>
-            <span>Pagamentos do Portal</span>
-
-            @if($solicitacoesPendentes > 0)
-                <span class="badge bg-danger ms-auto">
-                    {{ $solicitacoesPendentes }}
-                </span>
-            @endif
-        </a>
-    </li>
-@endif
-
         @if(auth()->check() && auth()->user()->isAdmin())
+
+            @php
+                $solicitacoesPendentes = \App\Models\SolicitacaoPagamento::where('status', 'pendente')->count();
+            @endphp
+
+            <li class="nav-item">
+                <a class="nav-link {{ request()->routeIs('admin.solicitacoes-pagamento.*') ? 'active' : '' }}"
+                   href="{{ route('admin.solicitacoes-pagamento.index') }}">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                    <span>Pagamentos do Portal</span>
+
+                    @if($solicitacoesPendentes > 0)
+                        <span class="badge bg-danger ms-auto">
+                            {{ $solicitacoesPendentes }}
+                        </span>
+                    @endif
+                </a>
+            </li>
+
+            <li class="nav-item">
+                <a class="nav-link {{ request()->routeIs('admin.usuarios.*') ? 'active' : '' }}"
+                   href="{{ route('admin.usuarios.index') }}">
+                    <i class="fas fa-user-gear"></i>
+                    <span>Usuários</span>
+                </a>
+            </li>
+
             <li class="nav-item">
                 <a class="nav-link {{ request()->routeIs('auditoria.*') ? 'active' : '' }}"
                    href="{{ route('auditoria.index') }}">
@@ -90,6 +97,7 @@
                     <span>Auditoria</span>
                 </a>
             </li>
+
         @endif
 
         <li class="nav-item">
